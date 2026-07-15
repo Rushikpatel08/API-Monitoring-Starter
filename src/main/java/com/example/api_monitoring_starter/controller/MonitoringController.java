@@ -1,6 +1,6 @@
 package com.example.api_monitoring_starter.controller;
 
-import com.example.api_monitoring_starter.dto.ApiInfoDTO;
+import com.example.api_monitoring_starter.dto.ApiControllerDTO;
 import com.example.api_monitoring_starter.scanner.ApiScanner;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +20,7 @@ public class MonitoringController {
 
 
     @GetMapping("/apis")
-    public List<ApiInfoDTO> getApis(){
+    public List<ApiControllerDTO> getApis(){
 
         return apiScanner.scan();
 
