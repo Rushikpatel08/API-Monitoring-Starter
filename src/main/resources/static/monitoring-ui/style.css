@@ -1,0 +1,187 @@
+
+:host {
+    display: block;
+    background-color: #f0eeee;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.title_box {
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 5px;
+    box-shadow: 3px 3px 3px #333;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 8px;
+    text-align: center;
+    width: 95%;
+}
+
+.title_box h4,
+.content_box h4 {
+    text-align: left;
+    font-weight: bold;
+}
+
+.sub-title {
+    text-align: center;
+    color: #0983e7;
+    font-size: 28px;
+    font-weight: 600;
+    text-shadow: 1px 1px 2px #000;
+}
+
+.title {
+    text-align: center;
+    color: #CC0000;
+    font-size: 47px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px #000;
+}
+
+.content_box {
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 5px;
+    box-shadow: 3px 3px 3px #333;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 30px;
+    padding: 15px;
+    text-align: left;
+    width: 95%;
+}
+.accordion-item {
+    
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+   
+}
+.accordion-button {
+    border-radius: 8px;
+     background-color:  #f0eeee;
+}
+.accordion-button:not(.collapsed) {
+    border-bottom: 1px solid #dee2e6;
+}
+.api-item {
+    border: 1px solid #d8dee4;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    background-color: #ffffff;
+}
+.api-controller {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-weight: 600;
+    border-left: 10px solid ;
+    border-top: 2px solid;
+    border-right: 2px solid;
+    border-bottom: 2px solid;
+    border-radius: 6px;
+    border: 2 px;
+}
+.api-header {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-weight: 600;
+    border-left: 5px solid;
+    border-top: 1px solid;
+    border-right: 1px solid;
+    border-radius: 6px;
+    border-bottom: 1px solid;
+}
+
+
+/* Method badge */
+.method {
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 65px;
+    text-align: center;
+}
+
+
+/* GET */
+.api-header.get {
+    background-color: #e7f3ff;
+    border-color: #4a90d9;
+}
+
+.get .method {
+    background-color: #61affe;
+}
+
+
+/* POST */
+.api-header.post {
+    background-color: #e8f8ef;
+    border-color: #36a269;
+}
+
+.post .method {
+    background-color: #49cc90;
+}
+
+
+/* PUT */
+.api-header.put {
+    background-color: #fff3e6;
+    border-color: #d98216;
+}
+
+.put .method {
+    background-color: #fca130;
+}
+
+
+/* PATCH */
+.api-header.patch {
+    background-color: #e8fbfb;
+    border-color: #2aa198;
+}
+
+.patch .method {
+    background-color: #50e3c2;
+}
+
+
+/* DELETE */
+.api-header.delete {
+    background-color: #ffecec;
+    border-color: #d63031;
+}
+
+.delete .method {
+    background-color: #f93e3e;
+}
+
+
+/* Endpoint */
+.endpoint {
+    font-family: monospace;
+    color: #3b4151;
+    font-size: 14px;
+}
+
+
+/* Expanded content */
+.api-body {
+    padding: 15px 20px;
+    background-color: #ffffff;
+}
+
