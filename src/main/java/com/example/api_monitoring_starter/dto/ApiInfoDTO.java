@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 
 @Data
 @NoArgsConstructor
@@ -13,11 +15,11 @@ public class ApiInfoDTO {
 
 
     private String controller;
-
     private String httpMethod;
+    private String path;
 
-    private String endpoint;
+    private List<String> parameters;
 
-    private String javaMethod;
+    private Object response;
 
 }
