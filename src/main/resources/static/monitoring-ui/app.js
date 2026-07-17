@@ -17,7 +17,7 @@ fetch('/api/v1/monitoring/apis')
                 <ul>
                     ${api.parameters.map(param => `
                         <li>
-                            <strong>${param.name}</strong>(${param.dataType})-${param.type}
+                            <strong>${param.name}</strong>(${param.dataType}) - ${param.type}
                             ${param.required ? "(Required)" : "(Optional)"}
                         </li>
                     `).join("")}
