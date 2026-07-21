@@ -10,6 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class MonitoringViewController {
     @GetMapping("/ui")
     public String dashboard(){
-        return "forward:/monitoring-ui/index.html";
+        return "forward:/monitoring-ui/API-List/index.html";
     }
 }

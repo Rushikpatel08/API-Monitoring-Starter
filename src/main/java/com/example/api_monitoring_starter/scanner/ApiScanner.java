@@ -264,33 +264,38 @@ public class ApiScanner {
     private ApiResponseDTO generateResponse(
             HandlerMethod handlerMethod){
 
-
         Object example =
                 generateResponseExample(handlerMethod);
-
-
 
         Object schema =
                 generateResponseSchema(handlerMethod);
 
 
+        ResponseStatus responseStatus =
+                handlerMethod.getMethodAnnotation(ResponseStatus.class);
+
+
+        int statusCode = 200;
+        String description = "OK";
+
+
+        // Check @ResponseStatus
+        if(responseStatus != null){
+
+            statusCode = responseStatus.code().value();
+            description = responseStatus.code().getReasonPhrase();
+
+        }
+
 
         return new ApiResponseDTO(
-
-                200,
-
-                "OK",
-
+                statusCode,
+                description,
                 "*/*",
-
                 example,
-
                 schema,
-
                 List.of()
-
         );
-
     }
 
 
@@ -427,21 +432,7 @@ public class ApiScanner {
 
 
 
-                String type =
-                        field.getType()
-                                .getSimpleName();
-
-
-
-                if(type.equals("Long")){
-                    type="integer int64";
-                }
-                else if(type.equals("Integer")){
-                    type="integer";
-                }
-                else{
-                    type="string";
-                }
+                String type = resolveSchemaType(field.getType());
 
 
 
@@ -476,58 +467,86 @@ public class ApiScanner {
 
 
 
+    private String resolveSchemaType(Class<?> fieldType) {
+
+        if (fieldType == String.class) {
+            return "string";
+        }
+
+        if (fieldType == Long.class || fieldType == long.class) {
+            return "integer int64";
+        }
+
+        if (fieldType == Integer.class || fieldType == int.class) {
+            return "integer int32";
+        }
+
+        if (fieldType == Double.class || fieldType == double.class) {
+            return "number double";
+        }
+
+        if (fieldType == Float.class || fieldType == float.class) {
+            return "number float";
+        }
+
+        if (fieldType == Boolean.class || fieldType == boolean.class) {
+            return "boolean";
+        }
+
+        // Dynamic date/time handling
+        if (java.time.temporal.Temporal.class.isAssignableFrom(fieldType)) {
+            return "string date-time";
+        }
+
+        return "object";
+    }
 
 
 
+    private Object createExampleObject(Class<?> clazz) {
 
-    private Object createExampleObject(
-            Class<?> clazz){
+        try {
 
+            Map<String, Object> response = new LinkedHashMap<>();
 
-        try{
+            for (Field field : clazz.getDeclaredFields()) {
 
+                Class<?> type = field.getType();
 
-            Object object =
-                    clazz.getDeclaredConstructor()
-                            .newInstance();
-
-
-
-            Map<String,Object> response =
-                    objectMapper.convertValue(
-                            object,
-                            Map.class
-                    );
-
-
-
-            response.replaceAll(
-                    (key,value)->{
-
-
-                        if(value instanceof Number){
-                            return 0;
-                        }
-
-
-                        return "string";
-
-                    }
-            );
-
-
+                if (type == String.class) {
+                    response.put(field.getName(), "string");
+                }
+                else if (type == Long.class || type == long.class) {
+                    response.put(field.getName(), 0);
+                }
+                else if (type == Integer.class || type == int.class) {
+                    response.put(field.getName(), 0);
+                }
+                else if (type == Double.class || type == double.class) {
+                    response.put(field.getName(), 0.0);
+                }
+                else if (type == Float.class || type == float.class) {
+                    response.put(field.getName(), 0.0);
+                }
+                else if (type == Boolean.class || type == boolean.class) {
+                    response.put(field.getName(), false);
+                }
+                else if (java.time.temporal.Temporal.class.isAssignableFrom(type)) {
+                    response.put(field.getName(), "2026-07-21T10:30:00");
+                }
+                else {
+                    response.put(field.getName(), null);
+                }
+            }
 
             return response;
 
-
-        }
-        catch(Exception e){
-
+        } catch (Exception e) {
             return null;
-
         }
-
     }
+
+
 
 
 }
