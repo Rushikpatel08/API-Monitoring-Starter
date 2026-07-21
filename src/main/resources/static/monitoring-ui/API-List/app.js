@@ -16,9 +16,13 @@ fetch('/api/v1/monitoring/apis')
             // =============================
             if(api.parameters && api.parameters.length > 0){
                 parametersHtml = `
-                <p><strong>Parameters</strong></p>
+                <div class="section-card">
 
-                <table class="table table-bordered">
+                    <div class="section-title">
+                       Parameters
+                    </div>
+
+                    <table class="table api-table">
                     <thead>
                         <tr>
                             <th>Name</th>
@@ -39,11 +43,29 @@ fetch('/api/v1/monitoring/apis')
                             </tr>
                         `).join("")}
                     </tbody>
-                </table>`;
+                </table></div>`;
             }
             else{
                 parametersHtml = `
                 <p><strong>Parameters:</strong> None</p>`;
+            }
+            let requestBodyHtml = "";
+            if(api.request){
+                window["requestExample"+index+j] = api.request.example;
+                window["requestSchema"+index+j] = api.request.schema;
+                requestBodyHtml = `
+                <div class="section-card">
+
+                 <div class="section-title">
+                    Request Body
+                 </div>
+                <p><strong>${api.request.mediaType}</strong></p>
+                <div class="response-toggle">
+                    <button id="requestExampleBtn${index}${j}" class="btn btn-sm btn-primary" onclick="showRequestExample('${index}${j}')">Example Value</button>
+                    <button id="requestSchemaBtn${index}${j}" class="btn btn-sm btn-outline-primary" onclick="showRequestSchema('${index}${j}')">Schema</button>
+                </div>
+                <div id="requestBox${index}${j}" class="response-box"><pre>${JSON.stringify(api.request.example,null,2)}</pre></div>
+                </div>`;
             }
             let responseHtml = "";
             // =============================
@@ -53,8 +75,13 @@ fetch('/api/v1/monitoring/apis')
                 window["example"+index+j] =api.response.example;
                 window["schema"+index+j] =api.response.schema;
                 responseHtml = `
-                <h4>Responses</h4>
-                <table class="table table-bordered">
+                <div class="section-card">
+
+                   <div class="section-title">
+                       Responses
+                   </div>
+
+                   <table class="table api-table">
                     <thead>
                         <tr>
                             <th>Code</th>
@@ -63,7 +90,7 @@ fetch('/api/v1/monitoring/apis')
                     </thead>
                     <tbody>
                         <tr>
-                           <td>${api.response.code}</td>
+                           <td><span class="status-badge success">${api.response.code}</span></td>
                             <td>${api.response.description}</td>
                         </tr>
                     </tbody>
@@ -83,18 +110,28 @@ fetch('/api/v1/monitoring/apis')
                     </button>
                 </div>
                 <div id="responseBox${index}${j}" class="response-box"><pre>${JSON.stringify(api.response.example,null,2)}</pre></div>
-                `;
+                </div>`;
             }
             apisHtml += `
+
             <div class="api-item">
                 <div class="api-header ${api.httpMethod.toLowerCase()}" data-bs-toggle="collapse" data-bs-target="#api${index}${j}">
                     <span class="method">${api.httpMethod}</span>
                     <span class="endpoint">${api.endpoint}</span>
+                    ${api.summary && api.summary.trim() !== ''
+                            ? `<span class="summary">${api.summary}</span>`
+                            : ''}
                 </div>
                 <div id="api${index}${j}" class="collapse">
                     <div class="api-body">
-                        <p class="method-name"><strong>Method Name : </strong>${api.javaMethod}()</p>
+                         <div class="section-card-heading">
+                            <div class="section-title-heading method-name">
+                                  <strong>Method Name : </strong>${api.javaMethod}()
+                                  ${api.description ? `<p style="font-weight: normal;margin-top:1%;">${api.description}</p>`:''}
+                            </div>
+                        </div>
                         ${parametersHtml}
+                        ${requestBodyHtml}
                         ${responseHtml}
                     </div>
                 </div>
@@ -104,7 +141,9 @@ fetch('/api/v1/monitoring/apis')
         container.innerHTML += `
         <div class="accordion-item">
             <h2 class="accordion-header">
-                <button class="accordion-button collapsed api-controller sub-title" type="button" data-bs-toggle="collapse" data-bs-target="#controller${index}">${controller.controller}</button>
+                <button class="accordion-button collapsed api-controller sub-title"
+                type="button" data-bs-toggle="collapse"
+                data-bs-target="#controller${index}">${controller.controller}${controller.tagDescription ? `<span class="tag-desc">${controller.tagDescription}</span>`: ""  }</button>
             </h2>
 
             <div id="controller${index}" class="accordion-collapse collapse">
@@ -194,3 +233,54 @@ function generateSchemaHtml(schema){
 
     return html;
 }
+function showRequestExample(id){
+
+    const box =
+        document.getElementById("requestBox"+id);
+
+
+    box.innerHTML =
+    `<pre>${JSON.stringify(window["requestExample"+id],null,2)}</pre>`;
+
+
+    const exampleBtn =
+        document.getElementById("requestExampleBtn"+id);
+
+    const schemaBtn =
+        document.getElementById("requestSchemaBtn"+id);
+
+
+    exampleBtn.classList.remove("btn-outline-primary");
+    exampleBtn.classList.add("btn-primary");
+
+
+    schemaBtn.classList.remove("btn-primary");
+    schemaBtn.classList.add("btn-outline-primary");
+
+}function showRequestSchema(id){
+
+     const box =
+         document.getElementById("requestBox"+id);
+
+
+     box.innerHTML =
+         generateSchemaHtml(window["requestSchema"+id]);
+
+
+     const exampleBtn =
+         document.getElementById("requestExampleBtn"+id);
+
+
+     const schemaBtn =
+         document.getElementById("requestSchemaBtn"+id);
+
+
+
+     schemaBtn.classList.remove("btn-outline-primary");
+     schemaBtn.classList.add("btn-primary");
+
+
+     exampleBtn.classList.remove("btn-primary");
+     exampleBtn.classList.add("btn-outline-primary");
+
+ }

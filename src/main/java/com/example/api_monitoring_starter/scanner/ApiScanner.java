@@ -1,9 +1,6 @@
 package com.example.api_monitoring_starter.scanner;
 
-import com.example.api_monitoring_starter.dto.ApiEndpointDTO;
-import com.example.api_monitoring_starter.dto.ApiParameterDTO;
-import com.example.api_monitoring_starter.dto.ControllerDTO;
-import com.example.api_monitoring_starter.dto.ApiResponseDTO;
+import com.example.api_monitoring_starter.dto.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -12,10 +9,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-
+import io.swagger.v3.oas.annotations.Operation;
 import java.lang.reflect.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
-
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Component
 public class ApiScanner {
@@ -45,219 +44,233 @@ public class ApiScanner {
 
     public List<ControllerDTO> scan() {
 
+        Map<String, List<ApiEndpointDTO>> grouped = new LinkedHashMap<>();
 
-        Map<String,List<ApiEndpointDTO>> grouped =
-                new LinkedHashMap<>();
+        Map<String, String> tagNames = new LinkedHashMap<>();
+        Map<String, String> tagDescriptions = new LinkedHashMap<>();
 
+        handlerMapping.getHandlerMethods().forEach((mapping, handler) -> {
 
-        handlerMapping.getHandlerMethods()
-                .forEach((mapping,handler)->{
+            String packageName = handler.getBeanType().getPackageName();
 
+            if (packageName.startsWith(STARTER_PACKAGE)) {
+                return;
+            }
 
-                    String packageName =
-                            handler.getBeanType()
-                                    .getPackageName();
+            String controller = handler.getBeanType().getSimpleName();
 
+            // ===========================================
+            // Controller Tag
+            // ===========================================
 
+            Tag tag = handler.getBeanType().getAnnotation(Tag.class);
 
-                    if(packageName.startsWith(STARTER_PACKAGE)){
-                        return;
+            if (tag != null) {
+                tagNames.put(controller, tag.name());
+                tagDescriptions.put(controller, tag.description());
+            } else {
+                tagNames.put(controller, controller);
+                tagDescriptions.put(controller, "");
+            }
+
+            // ===========================================
+            // Endpoint
+            // ===========================================
+
+            String endpoint = mapping.getPatternValues()
+                    .stream()
+                    .findFirst()
+                    .orElse("");
+
+            String httpMethod = mapping.getMethodsCondition()
+                    .getMethods()
+                    .stream()
+                    .findFirst()
+                    .map(Enum::name)
+                    .orElse("REQUEST");
+
+            Method javaMethod = handler.getMethod();
+
+            // ===========================================
+            // Swagger Operation
+            // ===========================================
+
+            String summary = "";
+            String description = "";
+
+            Operation operation =
+                    javaMethod.getAnnotation(Operation.class);
+
+            if (operation != null) {
+                summary = operation.summary();
+                description = operation.description();
+            }
+
+            // ===========================================
+            // Parameters
+            // ===========================================
+
+            List<ApiParameterDTO> parameters = new ArrayList<>();
+
+            ApiRequestDTO request = null;
+
+            for (Parameter parameter : javaMethod.getParameters()) {
+
+                String parameterName = parameter.getName();
+                String parameterType = "Unknown";
+                boolean required = false;
+
+                if (parameter.isAnnotationPresent(RequestParam.class)) {
+
+                    RequestParam annotation =
+                            parameter.getAnnotation(RequestParam.class);
+
+                    parameterType = "RequestParam";
+                    required = annotation.required();
+
+                    if (!annotation.value().isEmpty()) {
+                        parameterName = annotation.value();
                     }
+                }
 
+                else if (parameter.isAnnotationPresent(PathVariable.class)) {
 
+                    PathVariable annotation =
+                            parameter.getAnnotation(PathVariable.class);
 
-                    String controller =
-                            handler.getBeanType()
-                                    .getSimpleName();
+                    parameterType = "PathVariable";
+                    required = true;
 
-
-
-                    String endpoint =
-                            mapping.getPatternValues()
-                                    .stream()
-                                    .findFirst()
-                                    .orElse("");
-
-
-
-                    String httpMethod =
-                            mapping.getMethodsCondition()
-                                    .getMethods()
-                                    .stream()
-                                    .findFirst()
-                                    .map(Enum::name)
-                                    .orElse("REQUEST");
-
-
-
-                    Method javaMethod =
-                            handler.getMethod();
-
-
-
-                    List<ApiParameterDTO> parameters =
-                            new ArrayList<>();
-
-
-
-                    for(Parameter parameter : javaMethod.getParameters()){
-
-
-                        String parameterName =
-                                parameter.getName();
-
-
-                        String parameterType =
-                                "Unknown";
-
-
-                        boolean required=false;
-
-
-
-                        if(parameter.isAnnotationPresent(RequestParam.class)){
-
-
-                            RequestParam annotation =
-                                    parameter.getAnnotation(RequestParam.class);
-
-
-                            parameterType="RequestParam";
-
-                            required =
-                                    annotation.required();
-
-
-                            if(!annotation.value().isEmpty()){
-                                parameterName =
-                                        annotation.value();
-                            }
-
-                        }
-
-
-
-                        else if(parameter.isAnnotationPresent(PathVariable.class)){
-
-
-                            PathVariable annotation =
-                                    parameter.getAnnotation(PathVariable.class);
-
-
-                            parameterType="PathVariable";
-
-                            required=true;
-
-
-                            if(!annotation.value().isEmpty()){
-                                parameterName =
-                                        annotation.value();
-                            }
-
-                        }
-
-
-
-                        else if(parameter.isAnnotationPresent(RequestHeader.class)){
-
-
-                            RequestHeader annotation =
-                                    parameter.getAnnotation(RequestHeader.class);
-
-
-                            parameterType="RequestHeader";
-
-                            required =
-                                    annotation.required();
-
-
-                            if(!annotation.value().isEmpty()){
-                                parameterName =
-                                        annotation.value();
-                            }
-
-                        }
-
-
-
-                        else if(parameter.isAnnotationPresent(RequestBody.class)){
-
-
-                            RequestBody annotation =
-                                    parameter.getAnnotation(RequestBody.class);
-
-
-                            parameterType="RequestBody";
-
-                            required =
-                                    annotation.required();
-
-
-                            parameterName =
-                                    parameter.getType()
-                                            .getSimpleName();
-
-                        }
-
-
-
-                        parameters.add(
-                                new ApiParameterDTO(
-                                        parameterName,
-                                        parameterType,
-                                        parameter.getType()
-                                                .getSimpleName(),
-                                        required
-                                )
-                        );
-
-
+                    if (!annotation.value().isEmpty()) {
+                        parameterName = annotation.value();
                     }
+                }
 
+                else if (parameter.isAnnotationPresent(RequestHeader.class)) {
 
+                    RequestHeader annotation =
+                            parameter.getAnnotation(RequestHeader.class);
 
-                    ApiResponseDTO response =
-                            generateResponse(handler);
+                    parameterType = "RequestHeader";
+                    required = annotation.required();
 
+                    if (!annotation.value().isEmpty()) {
+                        parameterName = annotation.value();
+                    }
+                }
 
+                else if (parameter.isAnnotationPresent(RequestBody.class)) {
 
-                    grouped.computeIfAbsent(
-                                    controller,
-                                    k->new ArrayList<>()
-                            )
-                            .add(
+                    RequestBody annotation =
+                            parameter.getAnnotation(RequestBody.class);
 
-                                    new ApiEndpointDTO(
-                                            httpMethod,
-                                            endpoint,
-                                            javaMethod.getName(),
-                                            parameters,
-                                            response
-                                    )
+                    parameterType = "RequestBody";
+                    required = annotation.required();
 
-                            );
+                    parameterName = parameter.getType().getSimpleName();
 
+                    Class<?> requestClass = parameter.getType();
 
-                });
+                    request = new ApiRequestDTO(
+                            "application/json",
+                            createExampleObject(requestClass),
+                            generateSchema(requestClass)
+                    );
+                }
 
-
-
-        return grouped.entrySet()
-                .stream()
-                .map(entry ->
-                        new ControllerDTO(
-                                entry.getKey(),
-                                entry.getValue()
+                parameters.add(
+                        new ApiParameterDTO(
+                                parameterName,
+                                parameterType,
+                                parameter.getType().getSimpleName(),
+                                required
                         )
-                )
-                .toList();
+                );
+            }
 
+            // ===========================================
+            // Response
+            // ===========================================
 
+            ApiResponseDTO response =
+                    generateResponse(handler);
+
+            grouped.computeIfAbsent(
+                            controller,
+                            k -> new ArrayList<>())
+                    .add(
+                            new ApiEndpointDTO(
+                                    httpMethod,
+                                    endpoint,
+                                    javaMethod.getName(),
+                                    parameters,
+                                    response,
+                                    request,
+                                    summary,
+                                    description
+                            )
+                    );
+
+        });
+
+        // ===========================================
+        // Build ControllerDTO list
+        // ===========================================
+
+        List<ControllerDTO> controllers = new ArrayList<>();
+
+        grouped.forEach((controller, apis) -> {
+
+            controllers.add(
+                    new ControllerDTO(
+                            controller,
+                            tagNames.get(controller),
+                            tagDescriptions.get(controller),
+                            apis
+                    )
+            );
+
+        });
+
+        return controllers;
     }
 
 
 
+    private Object generateSchema(Class<?> clazz){
 
+        Map<String,Object> schema =
+                new LinkedHashMap<>();
+
+
+        schema.put(
+                "name",
+                clazz.getSimpleName()
+        );
+
+
+        Map<String,String> fields =
+                new LinkedHashMap<>();
+
+
+        for(Field field : clazz.getDeclaredFields()){
+
+            fields.put(
+                    field.getName(),
+                    resolveSchemaType(field.getType())
+            );
+
+        }
+
+
+        schema.put(
+                "fields",
+                fields
+        );
+
+
+        return schema;
+    }
 
 
 
@@ -532,7 +545,9 @@ public class ApiScanner {
                     response.put(field.getName(), false);
                 }
                 else if (java.time.temporal.Temporal.class.isAssignableFrom(type)) {
-                    response.put(field.getName(), "2026-07-21T10:30:00");
+                    String currentTime = LocalDateTime.now()
+                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+                    response.put(field.getName(), currentTime);
                 }
                 else {
                     response.put(field.getName(), null);
