@@ -9,23 +9,38 @@
 <body>
     <div class="title_box">
         <span class="title">API List</span>
-        <div class="theme-switcher">
+        <!--<div class="theme-switcher">
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setTheme('light')">☀️ Light</button>
             <button type="button" class="btn btn-sm btn-outline-dark" onclick="setTheme('dark')">🌙 Dark</button>
-        </div>
+        </div>-->
     </div>
     <div class="content_box">
+        <h5>API Collections</h5>
+        <p class="text-muted mb-3">
+            Export your application's API endpoints in a format compatible with popular API testing tools.
+        </p>
+        <div class="d-flex gap-3 w-100">
+            <button class="btn btn-primary" onclick="downloadBrunoCollection()">
+                <img src="/api/v1/monitoring-ui/API-List/images/bruno.png" alt="Bruno" class="tool-icon">
+                Bruno Collection
+            </button>
+
+            <button class="btn btn-warning" onclick="downloadInsomniaCollection()">
+                <img src="/api/v1/monitoring-ui/API-List/images/insomnia.png" alt="Insomnia" class="tool-icon">
+                Insomnia Collection
+            </button>
+
+            <button class="btn btn-info" onclick="downloadPostmanCollection()">
+                <img src="/api/v1/monitoring-ui/API-List/images/postman.png" alt="Postman" class="tool-icon">
+                Postman Collection
+            </button>
+        </div>
+    </div>
+
+    <div class="content_box">
         <div class="accordion" id="apiAccordion">
-            <div class="d-flex flex-wrap gap-2 mb-3">
-                <button class="btn btn-primary" onclick="downloadBrunoCollection()">📦 Bruno Collection</button>
-                <button class="btn btn-warning" onclick="downloadInsomniaCollection()">🧩 Insomnia Collection</button>
-                <button class="btn btn-info" onclick="downloadPostmanCollection()">📮 Postman Collection</button>
-            </div>
             <div id="container"></div>
         </div>
-
-
-
     </div>
 
     <script src="/api/v1/monitoring-ui/API-List/app.js"></script>
