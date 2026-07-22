@@ -1,0 +1,26 @@
+meta {
+  name: UpdateMobile
+  type: http
+  seq: 1
+}
+
+request {
+  url: {{baseUrl}}/student/updateStudent/{Student_id}
+  method: PUT
+  body: json
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+{
+  "Student_id" : 0,
+  "firstname" : "string",
+  "lastname" : "string",
+  "email" : "string",
+  "college" : "string",
+  "program" : "string"
+}
+}
