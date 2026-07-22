@@ -110,7 +110,15 @@ fetch('/api/v1/monitoring/apis')
                     </button>
                 </div>
                 <div id="responseBox${index}${j}" class="response-box"><pre>${JSON.stringify(api.response.example,null,2)}</pre></div>
-                </div>`;
+                <button
+                class="btn btn-success btn-sm"
+                onclick="downloadBruno('${api.id}')">
+
+                🚀 Export to Bruno
+
+                </button>
+                </div>
+                `;
             }
             apisHtml += `
 
@@ -133,6 +141,7 @@ fetch('/api/v1/monitoring/apis')
                         ${parametersHtml}
                         ${requestBodyHtml}
                         ${responseHtml}
+
                     </div>
                 </div>
             </div>
@@ -282,5 +291,20 @@ function showRequestExample(id){
 
      exampleBtn.classList.remove("btn-primary");
      exampleBtn.classList.add("btn-outline-primary");
+
+ }
+ function downloadBruno(id){
+
+
+ window.location.href =
+ "/api/v1/monitoring/export/bruno/"
+ +id;
+
+
+ }
+ function downloadBrunoCollection(){
+
+     window.location.href =
+     "/api/v1/monitoring/export/bruno/collection";
 
  }

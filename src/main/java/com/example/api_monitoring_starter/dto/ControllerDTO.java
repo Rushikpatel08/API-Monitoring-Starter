@@ -10,19 +10,31 @@ import java.util.List;
 
 public class ControllerDTO {
 
+
     private String controller;
+
 
     private List<ApiEndpointDTO> apis;
 
+
     private String tagName;
 
+
     private String tagDescription;
-    public ControllerDTO(String controller,String tagName,String tagDescription,List<ApiEndpointDTO> apis)
-    {
-        this.controller = controller;
-        this.tagName = tagName;
-        this.tagDescription = tagDescription;
-        this.apis = apis;
+
+
+
+    public ControllerDTO(
+            String controller,
+            String tagName,
+            String tagDescription,
+            List<ApiEndpointDTO> apis
+    ){
+
+        this.controller=controller;
+        this.tagName=tagName;
+        this.tagDescription=tagDescription;
+        this.apis=apis;
 
     }
     public String getController() {

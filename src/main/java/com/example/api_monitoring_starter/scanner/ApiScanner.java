@@ -51,12 +51,17 @@ public class ApiScanner {
 
         handlerMapping.getHandlerMethods().forEach((mapping, handler) -> {
 
-            String packageName = handler.getBeanType().getPackageName();
+            String packageName =
+                    handler.getBeanType()
+                            .getPackageName();
 
-            if (packageName.startsWith(STARTER_PACKAGE)) {
+
+            if(packageName.startsWith(STARTER_PACKAGE)
+                    ||
+                    packageName.startsWith("org.springframework")) {
+
                 return;
             }
-
             String controller = handler.getBeanType().getSimpleName();
 
             // ===========================================
@@ -82,6 +87,8 @@ public class ApiScanner {
                     .findFirst()
                     .orElse("");
 
+
+
             String httpMethod = mapping.getMethodsCondition()
                     .getMethods()
                     .stream()
@@ -89,6 +96,15 @@ public class ApiScanner {
                     .map(Enum::name)
                     .orElse("REQUEST");
 
+            String apiId =
+                    controller
+                            +"_"
+                            +httpMethod
+                            +"_"
+                            +endpoint
+                            .replace("/", "_")
+                            .replace("{","")
+                            .replace("}","");
             Method javaMethod = handler.getMethod();
 
             // ===========================================
@@ -113,6 +129,13 @@ public class ApiScanner {
             List<ApiParameterDTO> parameters = new ArrayList<>();
 
             ApiRequestDTO request = null;
+
+
+// ================================
+// Authentication
+// ================================
+
+            ApiAuthDTO authentication = null;
 
             for (Parameter parameter : javaMethod.getParameters()) {
 
@@ -148,17 +171,78 @@ public class ApiScanner {
 
                 else if (parameter.isAnnotationPresent(RequestHeader.class)) {
 
+
                     RequestHeader annotation =
                             parameter.getAnnotation(RequestHeader.class);
 
+
                     parameterType = "RequestHeader";
+
                     required = annotation.required();
 
-                    if (!annotation.value().isEmpty()) {
-                        parameterName = annotation.value();
-                    }
-                }
 
+
+                    if(!annotation.value().isEmpty()){
+
+                        parameterName = annotation.value();
+
+                    }
+
+
+
+                    // ===================================
+                    // AUTHENTICATION DETECTION
+                    // ===================================
+
+
+                    if(parameterName.equalsIgnoreCase("Authorization")){
+
+
+                        authentication =
+                                new ApiAuthDTO(
+                                        "Bearer",
+                                        "Authorization",
+                                        "token"
+                                );
+
+
+                    }
+
+
+
+                    else if(parameterName.equalsIgnoreCase("x-api-key")
+                            ||
+                            parameterName.equalsIgnoreCase("api-key")){
+
+
+                        authentication =
+                                new ApiAuthDTO(
+                                        "API_KEY",
+                                        parameterName,
+                                        "apiKey"
+                                );
+
+
+                    }
+
+
+
+                    else if(parameterName.equalsIgnoreCase("username")
+                            ||
+                            parameterName.equalsIgnoreCase("password")){
+
+
+                        authentication =
+                                new ApiAuthDTO(
+                                        "BASIC",
+                                        "Authorization",
+                                        "basicAuth"
+                                );
+
+                    }
+
+
+                }
                 else if (parameter.isAnnotationPresent(RequestBody.class)) {
 
                     RequestBody annotation =
@@ -200,14 +284,27 @@ public class ApiScanner {
                             k -> new ArrayList<>())
                     .add(
                             new ApiEndpointDTO(
+
+                                    apiId,
+
                                     httpMethod,
+
                                     endpoint,
+
                                     javaMethod.getName(),
+
                                     parameters,
+
                                     response,
+
                                     request,
+
+                                    authentication,
+
                                     summary,
+
                                     description
+
                             )
                     );
 

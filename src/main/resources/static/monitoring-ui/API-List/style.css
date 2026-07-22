@@ -86,10 +86,10 @@
     border-radius: 8px;
     justify-content: center; /* centers text inside flex button */
     border-left: 10px solid;
-        border-top: 2px solid;
-        border-right: 2px solid;
-        border-radius: 2px;
-        border-bottom: 2px solid;
+    border-top: 2px solid;
+    border-right: 2px solid;
+    border-radius: 7px;
+    border-bottom: 2px solid;
 }
 
 .accordion-button.api-controller.sub-title:not(.collapsed) {
