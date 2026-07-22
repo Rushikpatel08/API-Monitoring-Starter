@@ -1,55 +1,189 @@
-fetch('/api/v1/monitoring/apis')
+fetch('/monitoring/apis')
 
 .then(response => response.json())
 
 .then(data => {
-    const container = document.getElementById("container");
-    data.forEach((controller,index)=>{
+
+    const applicationContainer =
+        document.getElementById("applicationContainer");
+
+    const systemContainer =
+        document.getElementById("systemContainer");
+
+
+    const applicationBox =
+        document.getElementById("applicationBox");
+
+    const systemBox =
+        document.getElementById("systemBox");
+
+
+
+    const applicationControllers =
+        data.map(controller => ({
+            ...controller,
+            apis: controller.apis.filter(
+                api => api.apiType === "APPLICATION"
+            )
+        }))
+        .filter(controller => controller.apis.length > 0);
+
+
+
+    const systemControllers =
+        data.map(controller => ({
+            ...controller,
+            apis: controller.apis.filter(
+                api => api.apiType === "SYSTEM"
+            )
+        }))
+        .filter(controller => controller.apis.length > 0);
+
+
+
+    // APPLICATION SECTION
+
+    if(applicationControllers.length > 0){
+
+        applicationBox.style.display = "block";
+
+        renderControllers(
+            applicationControllers,
+            applicationContainer,
+            "application"
+        );
+
+    }
+    else{
+
+        applicationBox.style.display = "none";
+
+    }
+
+
+
+
+    // SYSTEM SECTION
+
+    if(systemControllers.length > 0){
+
+        systemBox.style.display = "block";
+
+        renderControllers(
+            systemControllers,
+            systemContainer,
+            "system"
+        );
+
+    }
+    else{
+
+        systemBox.style.display = "none";
+
+    }
+
+
+})
+
+
+.catch(error => {
+
+    console.error(
+        "Unable to load APIs",
+        error
+    );
+
+});
+
+
+
+
+
+function renderControllers(
+    controllers,
+    container,
+    type
+){
+
+
+    container.innerHTML = "";
+
+
+    controllers.forEach((controller,index)=>{
+
+
         let apisHtml = "";
+
+
+
         controller.apis.forEach((api,j)=>{
+
+
             let parametersHtml = "";
-            // =============================
-            // PARAMETERS
-            // =============================
-            // =============================
-            // PARAMETERS
-            // =============================
+
+
+
             if(api.parameters && api.parameters.length > 0){
+
+
                 parametersHtml = `
+
                 <div class="section-card">
 
-                    <div class="section-title">
-                       Parameters
-                    </div>
+                <div class="section-title">
+                    Parameters
+                </div>
 
-                    <table class="table api-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>In</th>
-                            <th>Type</th>
-                            <th>Required</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${api.parameters.map(param => `
-                            <tr>
-                                <td>${param.name}</td>
-                                <td>${param.type}</td>
-                                <td>${param.dataType}</td>
-                                <td>
-                                    ${param.required ? "✅" : "❌"}
-                                </td>
-                            </tr>
-                        `).join("")}
-                    </tbody>
-                </table></div>`;
+
+                <table class="table api-table">
+
+                <thead>
+
+                <tr>
+                    <th>Name</th>
+                    <th>In</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                ${api.parameters.map(param=>`
+
+                <tr>
+
+                <td>${param.name}</td>
+
+                <td>${param.type}</td>
+
+                <td>${param.dataType}</td>
+
+                <td>
+                    ${param.required ? "✅":"❌"}
+                </td>
+
+                </tr>
+
+
+                `).join("")}
+
+
+                </tbody>
+
+
+                </table>
+
+                </div>
+
+                `;
+
             }
-            else{
-                parametersHtml = `
-                <p><strong>Parameters:</strong> None</p>`;
-            }
-            let requestBodyHtml = "";
+
+let requestBodyHtml = "";
             if(api.request){
                 window["requestExample"+index+j] = api.request.example;
                 window["requestSchema"+index+j] = api.request.schema;
@@ -67,104 +201,300 @@ fetch('/api/v1/monitoring/apis')
                 <div id="requestBox${index}${j}" class="response-box"><pre>${JSON.stringify(api.request.example,null,2)}</pre></div>
                 </div>`;
             }
+
+
             let responseHtml = "";
-            // =============================
-            // RESPONSE
-            // =============================
+
+
             if(api.response){
-                window["example"+index+j] =api.response.example;
-                window["schema"+index+j] =api.response.schema;
+
+
+                window["example"+type+index+j] =
+                    api.response.example;
+
+
+                window["schema"+type+index+j] =
+                    api.response.schema;
+
+
+
                 responseHtml = `
+
                 <div class="section-card">
 
-                   <div class="section-title">
-                       Responses
-                   </div>
 
-                   <table class="table api-table">
-                    <thead>
-                        <tr>
-                            <th>Code</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                           <td><span class="status-badge success">${api.response.code}</span></td>
-                            <td>${api.response.description}</td>
-                        </tr>
-                    </tbody>
+                <div class="section-title">
+                    Responses
+                </div>
+
+
+
+                <table class="table api-table">
+
+                <tr>
+
+                <th>
+                    Code
+                </th>
+
+                <th>
+                    Description
+                </th>
+
+                </tr>
+
+
+                <tr>
+
+                <td>
+                <span class="status-badge success">
+                ${api.response.code}
+                </span>
+                </td>
+
+
+                <td>
+                ${api.response.description}
+                </td>
+
+
+                </tr>
+
+
                 </table>
-                <p><strong>Response Body</strong></p>
-                <div class="response-toggle">
-                    <button id="exampleBtn${index}${j}"
-                            class="btn btn-sm btn-primary"
-                            onclick="showExample('${index}${j}')">
-                        Example Value
-                    </button>
 
-                    <button id="schemaBtn${index}${j}"
-                            class="btn btn-sm btn-outline-primary"
-                            onclick="showSchema('${index}${j}')">
-                        Schema
-                    </button>
+
+
+                <p><strong>Response Body</strong></p>
+
+
+                <button
+                id="exampleBtn${type}${index}${j}"
+                class="btn btn-sm btn-primary"
+                onclick="showExample('${type}${index}${j}')">
+
+                Example Value
+
+                </button>
+
+
+
+                <button
+                id="schemaBtn${type}${index}${j}"
+                class="btn btn-sm btn-outline-primary"
+                onclick="showSchema('${type}${index}${j}')">
+
+                Schema
+
+                </button>
+
+
+
+                <div
+                id="responseBox${type}${index}${j}"
+                class="response-box">
+
+
+                <pre>
+${JSON.stringify(api.response.example,null,2)}
+                </pre>
+
+
                 </div>
-                <div id="responseBox${index}${j}" class="response-box"><pre>${JSON.stringify(api.response.example,null,2)}</pre></div>
+
+
+
                 </div>
+
+
                 `;
+
             }
+
+
+
+
             apisHtml += `
 
+
             <div class="api-item">
-                <div class="api-header ${api.httpMethod.toLowerCase()}" data-bs-toggle="collapse" data-bs-target="#api${index}${j}">
-                    <span class="method">${api.httpMethod}</span>
-                    <span class="endpoint">${api.endpoint}</span>
-                    ${api.summary && api.summary.trim() !== ''
-                            ? `<span class="summary">${api.summary}</span>`
-                            : ''}
-                    <span class="ms-auto d-flex flex-wrap gap-1">
-                        <button class="btn btn-success btn-sm py-0 px-2" onclick="event.stopPropagation(); downloadBruno('${api.id}')">Bruno</button>
-                        <button class="btn btn-warning btn-sm py-0 px-2" onclick="event.stopPropagation(); downloadInsomnia('${api.id}')">Insomnia</button>
-                        <button class="btn btn-info btn-sm py-0 px-2" onclick="event.stopPropagation(); downloadPostman('${api.id}')">Postman</button>
-                    </span>
-                </div>
-                <div id="api${index}${j}" class="collapse">
-                    <div class="api-body">
-                         <div class="section-card-heading">
-                            <div class="section-title-heading method-name">
-                                  <strong>Method Name : </strong>${api.javaMethod}()
-                                  ${api.description ? `<p style="font-weight: normal;margin-top:1%;">${api.description}</p>`:''}
-                            </div>
-                        </div>
-                        ${parametersHtml}
-                        ${requestBodyHtml}
-                        ${responseHtml}
 
-                    </div>
-                </div>
+
+            <div class="api-header ${api.httpMethod.toLowerCase()}"
+
+            data-bs-toggle="collapse"
+
+            data-bs-target="#api${type}${index}${j}">
+
+
+            <span class="method">
+
+            ${api.httpMethod}
+
+            </span>
+
+
+            <span class="endpoint">
+
+            ${api.endpoint}
+
+            </span>
+
+
+            <span class="ms-auto">
+
+
+            <button
+            class="btn btn-success btn-sm"
+
+            onclick="event.stopPropagation();downloadBruno('${api.id}')">
+
+            Bruno
+
+            </button>
+
+
+            <button
+            class="btn btn-warning btn-sm"
+
+            onclick="event.stopPropagation();downloadInsomnia('${api.id}')">
+
+            Insomnia
+
+            </button>
+
+
+            <button
+            class="btn btn-info btn-sm"
+
+            onclick="event.stopPropagation();downloadPostman('${api.id}')">
+
+            Postman
+
+            </button>
+
+
+            </span>
+
+
             </div>
+
+
+
+
+
+            <div id="api${type}${index}${j}"
+
+            class="collapse">
+
+
+            <div class="api-body">
+
+
+            <div class="section-card-heading">
+
+            <strong>
+            Method Name :
+            </strong>
+
+            ${api.javaMethod}()
+
+
+            </div>
+
+
+            ${parametersHtml}
+
+	${requestBodyHtml}
+
+            ${responseHtml}
+
+
+            </div>
+
+
+            </div>
+
+
+            </div>
+
+
+
             `;
+
+
+
         });
+
+
+
+
         container.innerHTML += `
+
+
         <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed api-controller sub-title"
-                type="button" data-bs-toggle="collapse"
-                data-bs-target="#controller${index}">${controller.controller}${controller.tagDescription ? `<span class="tag-desc">${controller.tagDescription}</span>`: ""  }</button>
-            </h2>
 
-            <div id="controller${index}" class="accordion-collapse collapse">
-                <div class="accordion-body">${apisHtml}</div>
-            </div>
+
+        <h2 class="accordion-header">
+
+
+        <button
+
+        class="accordion-button collapsed api-controller sub-title"
+
+        data-bs-toggle="collapse"
+
+        data-bs-target="#controller${type}${index}">
+
+
+        ${controller.controller}
+
+
+        ${controller.tagDescription
+        ?
+        `<span class="tag-desc">
+        ${controller.tagDescription}
+        </span>`
+        :
+        ""}
+
+
+        </button>
+
+
+        </h2>
+
+
+
+
+        <div id="controller${type}${index}"
+
+        class="accordion-collapse collapse">
+
+
+        <div class="accordion-body">
+
+
+        ${apisHtml}
+
+
         </div>
+
+
+        </div>
+
+
+
+        </div>
+
+
         `;
+
+
     });
-})
 
 
-.catch(error=>{
-    console.error("Unable to load APIs",error);
-});
+}
 // =================================================
 // SHOW EXAMPLE
 // =================================================

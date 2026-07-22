@@ -42,6 +42,8 @@ public class ApiEndpointDTO {
     private String description;
 
 
+    private String apiType;
+
 
     public ApiEndpointDTO(
             String id,
@@ -67,6 +69,9 @@ public class ApiEndpointDTO {
         this.summary=summary;
         this.description=description;
 
+    }
+    public String getApiType() {
+        return apiType;
     }
     public String getId(){
         return id;

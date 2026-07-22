@@ -15,7 +15,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
+import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.security.Principal;
 @Component
 public class ApiScanner {
 
@@ -51,99 +54,105 @@ public class ApiScanner {
 
         handlerMapping.getHandlerMethods().forEach((mapping, handler) -> {
 
-            String packageName =
-                    handler.getBeanType()
-                            .getPackageName();
+                    String packageName =
+                            handler.getBeanType()
+                                    .getPackageName();
 
 
-            if(packageName.startsWith(STARTER_PACKAGE)
-                    ||
-                    packageName.startsWith("org.springframework")) {
+                    if (packageName.startsWith(STARTER_PACKAGE)
+                            ||
+                            packageName.startsWith("org.springframework")) {
 
-                return;
-            }
-            String controller = handler.getBeanType().getSimpleName();
+                        return;
+                    }
+                    String controller = handler.getBeanType().getSimpleName();
 
-            // ===========================================
-            // Controller Tag
-            // ===========================================
+                    // ===========================================
+                    // Controller Tag
+                    // ===========================================
 
-            Tag tag = handler.getBeanType().getAnnotation(Tag.class);
+                    Tag tag = handler.getBeanType().getAnnotation(Tag.class);
 
-            if (tag != null) {
-                tagNames.put(controller, tag.name());
-                tagDescriptions.put(controller, tag.description());
-            } else {
-                tagNames.put(controller, controller);
-                tagDescriptions.put(controller, "");
-            }
+                    if (tag != null) {
+                        tagNames.put(controller, tag.name());
+                        tagDescriptions.put(controller, tag.description());
+                    } else {
+                        tagNames.put(controller, controller);
+                        tagDescriptions.put(controller, "");
+                    }
 
-            // ===========================================
-            // Endpoint
-            // ===========================================
+                    // ===========================================
+                    // Endpoint
+                    // ===========================================
 
-            String endpoint = mapping.getPatternValues()
-                    .stream()
-                    .findFirst()
-                    .orElse("");
+                    String endpoint = mapping.getPatternValues()
+                            .stream()
+                            .findFirst()
+                            .orElse("");
 
 
+                    String httpMethod = mapping.getMethodsCondition()
+                            .getMethods()
+                            .stream()
+                            .findFirst()
+                            .map(Enum::name)
+                            .orElse("REQUEST");
 
-            String httpMethod = mapping.getMethodsCondition()
-                    .getMethods()
-                    .stream()
-                    .findFirst()
-                    .map(Enum::name)
-                    .orElse("REQUEST");
+                    String apiId =
+                            controller
+                                    + "_"
+                                    + httpMethod
+                                    + "_"
+                                    + endpoint
+                                    .replace("/", "_")
+                                    .replace("{", "")
+                                    .replace("}", "");
+                    Method javaMethod = handler.getMethod();
 
-            String apiId =
-                    controller
-                            +"_"
-                            +httpMethod
-                            +"_"
-                            +endpoint
-                            .replace("/", "_")
-                            .replace("{","")
-                            .replace("}","");
-            Method javaMethod = handler.getMethod();
+                    // ===========================================
+                    // Swagger Operation
+                    // ===========================================
 
-            // ===========================================
-            // Swagger Operation
-            // ===========================================
+                    String summary = "";
+                    String description = "";
 
-            String summary = "";
-            String description = "";
+                    Operation operation =
+                            javaMethod.getAnnotation(Operation.class);
 
-            Operation operation =
-                    javaMethod.getAnnotation(Operation.class);
+                    if (operation != null) {
+                        summary = operation.summary();
+                        description = operation.description();
+                    }
 
-            if (operation != null) {
-                summary = operation.summary();
-                description = operation.description();
-            }
+                    // ===========================================
+                    // Parameters
+                    // ===========================================
 
-            // ===========================================
-            // Parameters
-            // ===========================================
+                    List<ApiParameterDTO> parameters = new ArrayList<>();
 
-            List<ApiParameterDTO> parameters = new ArrayList<>();
-
-            ApiRequestDTO request = null;
+                    ApiRequestDTO request = null;
 
 
 // ================================
 // Authentication
 // ================================
 
-            ApiAuthDTO authentication = null;
+                    ApiAuthDTO authentication = null;
 
             for (Parameter parameter : javaMethod.getParameters()) {
+
 
                 String parameterName = parameter.getName();
                 String parameterType = "Unknown";
                 boolean required = false;
 
-                if (parameter.isAnnotationPresent(RequestParam.class)) {
+
+
+                // ==============================
+                // Request Param
+                // ==============================
+
+                if(parameter.isAnnotationPresent(RequestParam.class)) {
 
                     RequestParam annotation =
                             parameter.getAnnotation(RequestParam.class);
@@ -151,12 +160,19 @@ public class ApiScanner {
                     parameterType = "RequestParam";
                     required = annotation.required();
 
-                    if (!annotation.value().isEmpty()) {
+                    if(!annotation.value().isEmpty()) {
                         parameterName = annotation.value();
                     }
+
                 }
 
-                else if (parameter.isAnnotationPresent(PathVariable.class)) {
+
+
+                // ==============================
+                // Path Variable
+                // ==============================
+
+                else if(parameter.isAnnotationPresent(PathVariable.class)) {
 
                     PathVariable annotation =
                             parameter.getAnnotation(PathVariable.class);
@@ -164,12 +180,19 @@ public class ApiScanner {
                     parameterType = "PathVariable";
                     required = true;
 
-                    if (!annotation.value().isEmpty()) {
+                    if(!annotation.value().isEmpty()) {
                         parameterName = annotation.value();
                     }
+
                 }
 
-                else if (parameter.isAnnotationPresent(RequestHeader.class)) {
+
+
+                // ==============================
+                // Request Header
+                // ==============================
+
+                else if(parameter.isAnnotationPresent(RequestHeader.class)) {
 
 
                     RequestHeader annotation =
@@ -181,22 +204,12 @@ public class ApiScanner {
                     required = annotation.required();
 
 
-
-                    if(!annotation.value().isEmpty()){
-
+                    if(!annotation.value().isEmpty()) {
                         parameterName = annotation.value();
-
                     }
 
 
-
-                    // ===================================
-                    // AUTHENTICATION DETECTION
-                    // ===================================
-
-
-                    if(parameterName.equalsIgnoreCase("Authorization")){
-
+                    if(parameterName.equalsIgnoreCase("Authorization")) {
 
                         authentication =
                                 new ApiAuthDTO(
@@ -205,14 +218,11 @@ public class ApiScanner {
                                         "token"
                                 );
 
-
                     }
-
-
 
                     else if(parameterName.equalsIgnoreCase("x-api-key")
                             ||
-                            parameterName.equalsIgnoreCase("api-key")){
+                            parameterName.equalsIgnoreCase("api-key")) {
 
 
                         authentication =
@@ -222,45 +232,237 @@ public class ApiScanner {
                                         "apiKey"
                                 );
 
-
                     }
-
-
-
-                    else if(parameterName.equalsIgnoreCase("username")
-                            ||
-                            parameterName.equalsIgnoreCase("password")){
-
-
-                        authentication =
-                                new ApiAuthDTO(
-                                        "BASIC",
-                                        "Authorization",
-                                        "basicAuth"
-                                );
-
-                    }
-
 
                 }
-                else if (parameter.isAnnotationPresent(RequestBody.class)) {
+
+
+
+                // ==============================
+                // Request Body
+                // ==============================
+
+                else if(parameter.isAnnotationPresent(RequestBody.class)) {
+
 
                     RequestBody annotation =
                             parameter.getAnnotation(RequestBody.class);
 
+
                     parameterType = "RequestBody";
+
                     required = annotation.required();
 
-                    parameterName = parameter.getType().getSimpleName();
 
-                    Class<?> requestClass = parameter.getType();
+                    parameterName =
+                            parameter.getType().getSimpleName();
 
-                    request = new ApiRequestDTO(
-                            "application/json",
-                            createExampleObject(requestClass),
-                            generateSchema(requestClass)
-                    );
+
+                    Class<?> requestClass =
+                            parameter.getType();
+
+
+                    request =
+                            new ApiRequestDTO(
+                                    "application/json",
+                                    createExampleObject(requestClass),
+                                    generateSchema(requestClass)
+                            );
+
                 }
+
+
+
+                // ==============================
+                // Model Attribute
+                // ==============================
+
+                else if(parameter.isAnnotationPresent(ModelAttribute.class)) {
+
+
+                    parameterType = "ModelAttribute";
+
+                    required = true;
+
+
+                    parameterName =
+                            parameter.getType().getSimpleName();
+
+
+                    request =
+                            new ApiRequestDTO(
+                                    "application/x-www-form-urlencoded",
+                                    createExampleObject(parameter.getType()),
+                                    generateSchema(parameter.getType())
+                            );
+
+                }
+
+
+
+                // ==============================
+                // Request Part (File Upload)
+                // ==============================
+
+                else if(parameter.isAnnotationPresent(RequestPart.class)) {
+
+
+                    RequestPart annotation =
+                            parameter.getAnnotation(RequestPart.class);
+
+
+                    parameterType = "RequestPart";
+
+                    required = annotation.required();
+
+
+                    if(!annotation.value().isEmpty()) {
+                        parameterName = annotation.value();
+                    }
+
+                }
+
+
+
+                // ==============================
+                // Cookie Value
+                // ==============================
+
+                else if(parameter.isAnnotationPresent(CookieValue.class)) {
+
+
+                    CookieValue annotation =
+                            parameter.getAnnotation(CookieValue.class);
+
+
+                    parameterType = "CookieValue";
+
+                    required = annotation.required();
+
+
+                    if(!annotation.value().isEmpty()) {
+                        parameterName = annotation.value();
+                    }
+
+                }
+
+
+
+                // ==============================
+                // Matrix Variable
+                // ==============================
+
+                else if(parameter.isAnnotationPresent(MatrixVariable.class)) {
+
+
+                    MatrixVariable annotation =
+                            parameter.getAnnotation(MatrixVariable.class);
+
+
+                    parameterType = "MatrixVariable";
+
+                    required = annotation.required();
+
+
+                    if(!annotation.value().isEmpty()) {
+                        parameterName = annotation.value();
+                    }
+
+                }
+
+
+
+                // ==============================
+                // Session Attribute
+                // ==============================
+
+                else if(parameter.isAnnotationPresent(SessionAttribute.class)) {
+
+
+                    SessionAttribute annotation =
+                            parameter.getAnnotation(SessionAttribute.class);
+
+
+                    parameterType = "SessionAttribute";
+
+                    required = annotation.required();
+
+
+                    parameterName = annotation.value();
+
+                }
+
+
+
+                // ==============================
+                // Request Attribute
+                // ==============================
+
+                else if(parameter.isAnnotationPresent(RequestAttribute.class)) {
+
+
+                    RequestAttribute annotation =
+                            parameter.getAnnotation(RequestAttribute.class);
+
+
+                    parameterType = "RequestAttribute";
+
+                    required = annotation.required();
+
+
+                    parameterName = annotation.value();
+
+                }
+
+
+
+                // ==============================
+                // Principal
+                // ==============================
+
+                else if(parameter.getType()
+                        .equals(Principal.class)) {
+
+
+                    parameterType = "Principal";
+
+                    parameterName = "principal";
+
+                }
+
+
+
+                // ==============================
+                // HttpServletRequest
+                // ==============================
+
+                else if(parameter.getType()
+                        .equals(HttpServletRequest.class)) {
+
+
+                    parameterType = "HttpServletRequest";
+
+                    parameterName = "request";
+
+                }
+
+
+
+                // ==============================
+                // HttpServletResponse
+                // ==============================
+
+                else if(parameter.getType()
+                        .equals(HttpServletResponse.class)) {
+
+
+                    parameterType = "HttpServletResponse";
+
+                    parameterName = "response";
+
+                }
+
+
 
                 parameters.add(
                         new ApiParameterDTO(
@@ -270,19 +472,16 @@ public class ApiScanner {
                                 required
                         )
                 );
+
             }
+                    // ===========================================
+                    // Response
+                    // ===========================================
 
-            // ===========================================
-            // Response
-            // ===========================================
+                    ApiResponseDTO response =
+                            generateResponse(handler);
 
-            ApiResponseDTO response =
-                    generateResponse(handler);
-
-            grouped.computeIfAbsent(
-                            controller,
-                            k -> new ArrayList<>())
-                    .add(
+                    ApiEndpointDTO api =
                             new ApiEndpointDTO(
 
                                     apiId,
@@ -305,11 +504,22 @@ public class ApiScanner {
 
                                     description
 
-                            )
+                            );
+
+
+// Set API category
+                    api.setApiType(
+                            classifyApi(endpoint)
                     );
 
-        });
 
+// Add API
+                    grouped.computeIfAbsent(
+                                    controller,
+                                    k -> new ArrayList<>()
+                            )
+                            .add(api);
+                });
         // ===========================================
         // Build ControllerDTO list
         // ===========================================
@@ -411,7 +621,36 @@ public class ApiScanner {
 
 
 
+    private String classifyApi(String endpoint){
 
+
+        List<String> systemApis = List.of(
+
+                "/v3",
+                "/swagger",
+                "/actuator",
+                "/error",
+                "/metadata",
+                "/monitoring",
+                "/webjars"
+
+        );
+
+
+        for(String system : systemApis){
+
+            if(endpoint.startsWith(system)){
+
+                return "SYSTEM";
+
+            }
+
+        }
+
+
+        return "APPLICATION";
+
+    }
 
 
     private Object generateResponseExample(

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>API Monitoring</title>
-    <link rel="stylesheet" href="/api/v1/monitoring-ui/API-List/style.css">
+    <link rel="stylesheet" href="/monitoring-ui/API-List/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
@@ -21,29 +21,45 @@
         </p>
         <div class="d-flex gap-3 w-100">
             <button class="btn btn-primary" onclick="downloadBrunoCollection()">
-                <img src="/api/v1/monitoring-ui/API-List/images/bruno.png" alt="Bruno" class="tool-icon">
+                <img src="/monitoring-ui/API-List/images/bruno.png" alt="Bruno" class="tool-icon">
                 Bruno Collection
             </button>
 
             <button class="btn btn-warning" onclick="downloadInsomniaCollection()">
-                <img src="/api/v1/monitoring-ui/API-List/images/insomnia.png" alt="Insomnia" class="tool-icon">
+                <img src="/monitoring-ui/API-List/images/insomnia.png" alt="Insomnia" class="tool-icon">
                 Insomnia Collection
             </button>
 
             <button class="btn btn-info" onclick="downloadPostmanCollection()">
-                <img src="/api/v1/monitoring-ui/API-List/images/postman.png" alt="Postman" class="tool-icon">
+                <img src="/monitoring-ui/API-List/images/postman.png" alt="Postman" class="tool-icon">
                 Postman Collection
             </button>
         </div>
     </div>
 
-    <div class="content_box">
-        <div class="accordion" id="apiAccordion">
-            <div id="container"></div>
+    <div id="applicationBox" class="content_box">
+
+        <h4>Application APIs</h4>
+
+        <div class="accordion" id="applicationAccordion">
+            <div id="applicationContainer"></div>
         </div>
+
     </div>
 
-    <script src="/api/v1/monitoring-ui/API-List/app.js"></script>
+
+
+    <div id="systemBox" class="content_box">
+
+        <h4>System APIs</h4>
+
+        <div class="accordion" id="systemAccordion">
+            <div id="systemContainer"></div>
+        </div>
+
+    </div>
+
+    <script src="/monitoring-ui/API-List/app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
