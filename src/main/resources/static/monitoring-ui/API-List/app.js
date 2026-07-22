@@ -110,13 +110,6 @@ fetch('/api/v1/monitoring/apis')
                     </button>
                 </div>
                 <div id="responseBox${index}${j}" class="response-box"><pre>${JSON.stringify(api.response.example,null,2)}</pre></div>
-                <button
-                class="btn btn-success btn-sm"
-                onclick="downloadBruno('${api.id}')">
-
-                🚀 Export to Bruno
-
-                </button>
                 </div>
                 `;
             }
@@ -129,6 +122,11 @@ fetch('/api/v1/monitoring/apis')
                     ${api.summary && api.summary.trim() !== ''
                             ? `<span class="summary">${api.summary}</span>`
                             : ''}
+                    <span class="ms-auto d-flex flex-wrap gap-1">
+                        <button class="btn btn-success btn-sm py-0 px-2" onclick="event.stopPropagation(); downloadBruno('${api.id}')">Bruno</button>
+                        <button class="btn btn-warning btn-sm py-0 px-2" onclick="event.stopPropagation(); downloadInsomnia('${api.id}')">Insomnia</button>
+                        <button class="btn btn-info btn-sm py-0 px-2" onclick="event.stopPropagation(); downloadPostman('${api.id}')">Postman</button>
+                    </span>
                 </div>
                 <div id="api${index}${j}" class="collapse">
                     <div class="api-body">
@@ -302,9 +300,51 @@ function showRequestExample(id){
 
 
  }
+
+ function downloadInsomnia(id){
+
+ window.location.href =
+ "/api/v1/monitoring/export/insomnia/"
+ +id;
+
+ }
+
+ function downloadPostman(id){
+
+ window.location.href =
+ "/api/v1/monitoring/export/postman/"
+ +id;
+
+ }
  function downloadBrunoCollection(){
 
      window.location.href =
      "/api/v1/monitoring/export/bruno/collection";
 
  }
+
+ function downloadInsomniaCollection(){
+
+     window.location.href =
+     "/api/v1/monitoring/export/insomnia/collection";
+
+ }
+
+ function downloadPostmanCollection(){
+
+     window.location.href =
+     "/api/v1/monitoring/export/postman/collection";
+
+ }
+
+function setTheme(theme) {
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('monitoring-theme', theme);
+}
+
+function initializeTheme() {
+    const savedTheme = localStorage.getItem('monitoring-theme');
+    setTheme(savedTheme === 'dark' ? 'dark' : 'light');
+}
+
+initializeTheme();

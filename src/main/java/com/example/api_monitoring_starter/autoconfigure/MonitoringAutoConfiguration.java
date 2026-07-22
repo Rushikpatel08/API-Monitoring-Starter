@@ -6,6 +6,8 @@ import com.example.api_monitoring_starter.controller.BrunoExportController;
 import com.example.api_monitoring_starter.controller.MonitoringController;
 import com.example.api_monitoring_starter.controller.MonitoringViewController;
 import com.example.api_monitoring_starter.exporter.BrunoExportService;
+import com.example.api_monitoring_starter.exporter.InsomniaExportService;
+import com.example.api_monitoring_starter.exporter.PostmanExportService;
 import com.example.api_monitoring_starter.scanner.ApiScanner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -83,14 +85,28 @@ public class MonitoringAutoConfiguration {
     public BrunoExportController brunoExportController(
             ApiRegistryService apiRegistryService,
             BrunoExportService brunoExportService,
+            InsomniaExportService insomniaExportService,
+            PostmanExportService postmanExportService,
             OpenApiExportService openApiExportService
     ) {
 
         return new BrunoExportController(
                 apiRegistryService,
                 brunoExportService,
+                insomniaExportService,
+                postmanExportService,
                 openApiExportService
         );
+    }
+
+    @Bean
+    public InsomniaExportService insomniaExportService(ApiRegistryService apiRegistryService) {
+        return new InsomniaExportService(new ObjectMapper(), apiRegistryService);
+    }
+
+    @Bean
+    public PostmanExportService postmanExportService(ApiRegistryService apiRegistryService) {
+        return new PostmanExportService(new ObjectMapper(), apiRegistryService);
     }
 
 }

@@ -4,10 +4,14 @@ package com.example.api_monitoring_starter.controller;
 import com.example.api_monitoring_starter.dto.ApiEndpointDTO;
 import com.example.api_monitoring_starter.Service.ApiRegistryService;
 import com.example.api_monitoring_starter.exporter.BrunoExportService;
+import com.example.api_monitoring_starter.exporter.InsomniaExportService;
+import com.example.api_monitoring_starter.exporter.PostmanExportService;
 
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import com.example.api_monitoring_starter.Service.OpenApiExportService;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 
@@ -20,17 +24,25 @@ public class BrunoExportController {
 
     private final BrunoExportService brunoExportService;
 
+    private final InsomniaExportService insomniaExportService;
+
+    private final PostmanExportService postmanExportService;
+
     private final OpenApiExportService openApiExportService;
 
 
     public BrunoExportController(
             ApiRegistryService registryService,
             BrunoExportService brunoExportService,
+            InsomniaExportService insomniaExportService,
+            PostmanExportService postmanExportService,
             OpenApiExportService openApiExportService
     ){
 
         this.registryService = registryService;
         this.brunoExportService = brunoExportService;
+        this.insomniaExportService = insomniaExportService;
+        this.postmanExportService = postmanExportService;
         this.openApiExportService=openApiExportService;
 
     }
@@ -105,6 +117,52 @@ public class BrunoExportController {
                 .body(zip);
 
     }
+    @GetMapping("/export/insomnia/{id}")
+    public ResponseEntity<byte[]> exportInsomnia(@PathVariable String id) {
+        ApiEndpointDTO api = registryService.findApi(id);
+        if (api == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String content = insomniaExportService.generate(api);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + api.getJavaMethod() + ".json")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @GetMapping("/export/insomnia/collection")
+    public ResponseEntity<byte[]> exportInsomniaCollection() {
+        String content = insomniaExportService.generateCollection();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Student-API-Insomnia.json")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @GetMapping("/export/postman/{id}")
+    public ResponseEntity<byte[]> exportPostman(@PathVariable String id) {
+        ApiEndpointDTO api = registryService.findApi(id);
+        if (api == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String content = postmanExportService.generate(api);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + api.getJavaMethod() + ".json")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @GetMapping("/export/postman/collection")
+    public ResponseEntity<byte[]> exportPostmanCollection() {
+        String content = postmanExportService.generateCollection();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Student-API-Postman.json")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(content.getBytes(StandardCharsets.UTF_8));
+    }
+
     @GetMapping(value = "/export/openapi", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> exportOpenApi() {
         return openApiExportService.generate();
