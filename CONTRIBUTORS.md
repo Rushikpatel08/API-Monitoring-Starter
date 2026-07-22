@@ -3,8 +3,8 @@
 Thank you to everyone who helps improve this project.
 
 ## Maintainers
-
-- [@gapur](https://github.com/gapur)
+- [@Rushikpatel08](https://github.com/Rushikpatel08)
+- [@apurvagandhi](https://github.com/apurvagandhi)
 
 ## Contributors
 
