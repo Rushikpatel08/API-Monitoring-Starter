@@ -141,7 +141,7 @@ public class BrunoExportService {
 
 
 
-    public byte[] generateCollection(){
+    public byte[] generateCollection(String type){
 
 
         try(
@@ -154,9 +154,7 @@ public class BrunoExportService {
         ){
 
 
-
             Set<String> generatedFiles = new HashSet<>();
-
 
 
             // ============================
@@ -177,8 +175,6 @@ public class BrunoExportService {
             );
 
 
-
-
             // ============================
             // Environment
             // ============================
@@ -196,13 +192,9 @@ public class BrunoExportService {
 
 
 
-
-
-
             // ============================
             // API Requests
             // ============================
-
 
             List<ControllerDTO> controllers =
                     apiRegistryService.getApis();
@@ -214,6 +206,24 @@ public class BrunoExportService {
 
                 for(ApiEndpointDTO api :
                         controller.getApis()){
+
+
+                    // ============================
+                    // FILTER APPLICATION / SYSTEM / ALL
+                    // ============================
+
+                    if(type != null &&
+                            !type.equalsIgnoreCase("all")){
+
+
+                        if(!api.getApiType()
+                                .equalsIgnoreCase(type)){
+
+                            continue;
+
+                        }
+
+                    }
 
 
 
@@ -240,10 +250,10 @@ public class BrunoExportService {
                             generate(api)
                     );
 
+
                 }
 
             }
-
 
 
 
@@ -264,7 +274,6 @@ public class BrunoExportService {
         }
 
     }
-
 
 
 

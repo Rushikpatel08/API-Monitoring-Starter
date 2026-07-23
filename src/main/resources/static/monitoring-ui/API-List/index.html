@@ -19,7 +19,7 @@
         <p class="text-muted mb-3">
             Export your application's API endpoints in a format compatible with popular API testing tools.
         </p>
-        <div class="d-flex gap-3 w-100">
+        <!--<div class="d-flex gap-3 w-100">
             <button class="btn btn-primary" onclick="downloadBrunoCollection()">
                 <img src="/monitoring-ui/API-List/images/bruno.png" alt="Bruno" class="tool-icon">
                 Bruno Collection
@@ -34,7 +34,21 @@
                 <img src="/monitoring-ui/API-List/images/postman.png" alt="Postman" class="tool-icon">
                 Postman Collection
             </button>
-        </div>
+        </div>-->
+        <button class="btn btn-primary" onclick="openCollectionModal('bruno')">
+            <img src="/monitoring-ui/API-List/images/bruno.png" class="tool-icon">
+            Bruno Collection
+        </button>
+
+        <button class="btn btn-warning" onclick="openCollectionModal('insomnia')">
+            <img src="/monitoring-ui/API-List/images/insomnia.png" class="tool-icon">
+            Insomnia Collection
+        </button>
+
+        <button class="btn btn-info" onclick="openCollectionModal('postman')">
+            <img src="/monitoring-ui/API-List/images/postman.png" class="tool-icon">
+            Postman Collection
+        </button>
     </div>
 
     <div id="applicationBox" class="content_box">
@@ -57,6 +71,63 @@
             <div id="systemContainer"></div>
         </div>
 
+    </div>
+    <div class="modal fade" id="collectionModal" tabindex="-1">
+
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content collection-modal">
+                <div class="modal-header">
+                    <div>
+                        <h4 class="modal-title fw-bold">Export API Collection</h4>
+                        <small class="text-muted">Select the APIs you want to export</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="selectedCollectionType">
+                    <div class="collection-options">
+                        <!-- ALL -->
+                        <label class="collection-card">
+                            <input  type="radio" name="collectionOption" value="all" checked>
+                            <div class="collection-content">
+
+                                <div>
+                                    <h6>Whole Collection</h6>
+                                    <p>Export all application and system APIs</p>
+                                </div>
+                            </div>
+                        </label>
+                        <!-- APPLICATION -->
+                        <label class="collection-card">
+                            <input class="form-check-input" type="radio" name="collectionOption" value="application">
+                            <div class="collection-content">
+
+                                <div>
+                                    <h6>Application APIs</h6>
+                                    <p>Export user-developed APIs only</p>
+                                </div>
+                            </div>
+                        </label>
+                        <!-- SYSTEM -->
+                        <label class="collection-card">
+                            <input class="form-check-input" type="radio" name="collectionOption" value="system">
+                            <div class="collection-content">
+
+                                <div>
+                                    <h6>System APIs</h6>
+                                    <p>Export framework and system APIs</p>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary px-4" onclick="downloadSelectedCollection()"> ⬇ Download</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/monitoring-ui/API-List/app.js"></script>

@@ -625,7 +625,7 @@ function showRequestExample(id){
 
 
  window.location.href =
- "/api/v1/monitoring/export/bruno/"
+ "/monitoring/export/bruno/"
  +id;
 
 
@@ -634,7 +634,7 @@ function showRequestExample(id){
  function downloadInsomnia(id){
 
  window.location.href =
- "/api/v1/monitoring/export/insomnia/"
+ "/monitoring/export/insomnia/"
  +id;
 
  }
@@ -642,28 +642,28 @@ function showRequestExample(id){
  function downloadPostman(id){
 
  window.location.href =
- "/api/v1/monitoring/export/postman/"
+ "/monitoring/export/postman/"
  +id;
 
  }
  function downloadBrunoCollection(){
 
      window.location.href =
-     "/api/v1/monitoring/export/bruno/collection";
+     "/monitoring/export/bruno/collection";
 
  }
 
  function downloadInsomniaCollection(){
 
      window.location.href =
-     "/api/v1/monitoring/export/insomnia/collection";
+     "/monitoring/export/insomnia/collection";
 
  }
 
  function downloadPostmanCollection(){
 
      window.location.href =
-     "/api/v1/monitoring/export/postman/collection";
+     "/monitoring/export/postman/collection";
 
  }
 
@@ -678,3 +678,78 @@ function initializeTheme() {
 }
 
 initializeTheme();
+
+let selectedCollectionType = "";
+
+
+
+function openCollectionModal(type){
+
+    selectedCollectionType = type;
+
+
+    const modal = new bootstrap.Modal(
+        document.getElementById("collectionModal")
+    );
+
+
+    modal.show();
+
+}
+
+
+function downloadSelectedCollection(){
+
+
+    const option =
+        document.querySelector(
+            'input[name="collectionOption"]:checked'
+        ).value;
+
+
+    let url = "";
+
+
+    if(selectedCollectionType === "bruno"){
+
+        url =
+        "/monitoring/export/bruno/collection/"
+        + option;
+
+    }
+    else if(selectedCollectionType === "insomnia"){
+
+        url =
+        "/monitoring/export/insomnia/collection/"
+        + option;
+
+    }
+    else if(selectedCollectionType === "postman"){
+
+        url =
+        "/monitoring/export/postman/collection/"
+        + option;
+
+    }
+
+
+    // Start download
+    window.location.href = url;
+
+
+    // Close modal
+    const modalElement =
+        document.getElementById("collectionModal");
+
+
+    const modal =
+        bootstrap.Modal.getInstance(modalElement);
+
+
+    if(modal){
+
+        modal.hide();
+
+    }
+
+}

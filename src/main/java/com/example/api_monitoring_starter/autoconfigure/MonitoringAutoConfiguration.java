@@ -2,7 +2,7 @@ package com.example.api_monitoring_starter.autoconfigure;
 
 import com.example.api_monitoring_starter.Service.ApiRegistryService;
 import com.example.api_monitoring_starter.Service.OpenApiExportService;
-import com.example.api_monitoring_starter.controller.BrunoExportController;
+import com.example.api_monitoring_starter.controller.ApiExportController;
 import com.example.api_monitoring_starter.controller.MonitoringController;
 import com.example.api_monitoring_starter.controller.MonitoringViewController;
 import com.example.api_monitoring_starter.exporter.BrunoExportService;
@@ -82,7 +82,7 @@ public class MonitoringAutoConfiguration {
 
 
     @Bean
-    public BrunoExportController brunoExportController(
+    public ApiExportController brunoExportController(
             ApiRegistryService apiRegistryService,
             BrunoExportService brunoExportService,
             InsomniaExportService insomniaExportService,
@@ -90,7 +90,7 @@ public class MonitoringAutoConfiguration {
             OpenApiExportService openApiExportService
     ) {
 
-        return new BrunoExportController(
+        return new ApiExportController(
                 apiRegistryService,
                 brunoExportService,
                 insomniaExportService,

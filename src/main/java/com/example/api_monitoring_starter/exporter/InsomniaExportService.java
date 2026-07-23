@@ -5,6 +5,7 @@ import com.example.api_monitoring_starter.dto.ApiEndpointDTO;
 import com.example.api_monitoring_starter.dto.ControllerDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,6 +16,9 @@ public class InsomniaExportService {
 
     private final ObjectMapper objectMapper;
     private final ApiRegistryService apiRegistryService;
+
+
+
 
     public InsomniaExportService(ObjectMapper objectMapper, ApiRegistryService apiRegistryService) {
         this.objectMapper = objectMapper;
@@ -35,6 +39,12 @@ public class InsomniaExportService {
             resource.put("parentId", "wrk_1");
             resource.put("name", api.getJavaMethod());
             resource.put("method", api.getHttpMethod().toUpperCase());
+            resource.put("headers", List.of(
+                    Map.of(
+                            "name", "Content-Type",
+                            "value", "application/json"
+                    )
+            ));
             resource.put("url", "{{ base_url }}" + api.getEndpoint());
             resource.put("description", api.getDescription());
             resource.put("body", Map.of(
@@ -57,7 +67,11 @@ public class InsomniaExportService {
         }
     }
 
-    public String generateCollection() {
+    public String generateCollection(String type) {
+        String baseUrl = ServletUriComponentsBuilder
+                .fromCurrentContextPath()
+                .build()
+                .toUriString();
         try {
             Map<String, Object> document = new LinkedHashMap<>();
             document.put("_type", "export");
@@ -73,14 +87,30 @@ public class InsomniaExportService {
             resources.add(workspace);
 
             for (ControllerDTO controller : apiRegistryService.getApis()) {
+
                 for (ApiEndpointDTO api : controller.getApis()) {
+
+
+                    if(type != null && !type.equalsIgnoreCase("all")) {
+
+                        if(!api.getApiType().equalsIgnoreCase(type)) {
+                            continue;
+                        }
+
+                    }
                     Map<String, Object> resource = new LinkedHashMap<>();
                     resource.put("_id", api.getId());
                     resource.put("_type", "request");
                     resource.put("parentId", "wrk_1");
                     resource.put("name", api.getJavaMethod());
                     resource.put("method", api.getHttpMethod().toUpperCase());
-                    resource.put("url", "{{ base_url }}" + api.getEndpoint());
+                    resource.put("headers", List.of(
+                            Map.of(
+                                    "name", "Content-Type",
+                                    "value", "application/json"
+                            )
+                    ));
+                    resource.put("url", baseUrl + api.getEndpoint());
                     resource.put("description", api.getDescription());
                     if (api.getRequest() != null) {
                         Map<String, Object> body = new LinkedHashMap<>();

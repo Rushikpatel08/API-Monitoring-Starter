@@ -17,7 +17,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/monitoring")
-public class BrunoExportController {
+public class ApiExportController {
 
 
     private final ApiRegistryService registryService;
@@ -31,7 +31,7 @@ public class BrunoExportController {
     private final OpenApiExportService openApiExportService;
 
 
-    public BrunoExportController(
+    public ApiExportController(
             ApiRegistryService registryService,
             BrunoExportService brunoExportService,
             InsomniaExportService insomniaExportService,
@@ -98,12 +98,14 @@ public class BrunoExportController {
 
     }
 
-    @GetMapping("/export/bruno/collection")
-    public ResponseEntity<byte[]> exportBrunoCollection() {
+    @GetMapping("/export/bruno/collection/{type}")
+    public ResponseEntity<byte[]> exportBrunoCollection(
+            @PathVariable String type
+    ){
 
 
         byte[] zip =
-                brunoExportService.generateCollection();
+                brunoExportService.generateCollection(type);
 
 
         return ResponseEntity.ok()
@@ -131,11 +133,19 @@ public class BrunoExportController {
                 .body(content.getBytes(StandardCharsets.UTF_8));
     }
 
-    @GetMapping("/export/insomnia/collection")
-    public ResponseEntity<byte[]> exportInsomniaCollection() {
-        String content = insomniaExportService.generateCollection();
+    @GetMapping("/export/insomnia/collection/{type}")
+    public ResponseEntity<byte[]> exportInsomniaCollection(
+            @PathVariable String type
+    ) {
+
+        String content =
+                insomniaExportService.generateCollection(type);
+
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Student-API-Insomnia.json")
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=Student-API-Insomnia.json"
+                )
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(content.getBytes(StandardCharsets.UTF_8));
     }
@@ -154,9 +164,11 @@ public class BrunoExportController {
                 .body(content.getBytes(StandardCharsets.UTF_8));
     }
 
-    @GetMapping("/export/postman/collection")
-    public ResponseEntity<byte[]> exportPostmanCollection() {
-        String content = postmanExportService.generateCollection();
+    @GetMapping("/export/postman/collection/{type}")
+    public ResponseEntity<byte[]> exportPostmanCollection(
+            @PathVariable String type
+    ) {
+        String content = postmanExportService.generateCollection(type);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Student-API-Postman.json")
                 .contentType(MediaType.APPLICATION_JSON)

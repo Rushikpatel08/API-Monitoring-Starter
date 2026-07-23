@@ -37,7 +37,7 @@ class ExportServiceTest {
         ));
 
         PostmanExportService service = new PostmanExportService(new ObjectMapper(), registryService);
-        String exported = service.generateCollection();
+        String exported = service.generateCollection("all");
 
         assertTrue(exported.contains("\"info\""));
         assertTrue(exported.contains("\"item\""));

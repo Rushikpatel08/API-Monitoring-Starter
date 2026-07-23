@@ -445,3 +445,179 @@ body[data-theme="dark"] .api-header {
     margin-bottom:20px;
 }
 
+/* Collection Export Modal */
+
+.collection-modal {
+
+    border-radius: 18px;
+    border: none;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+
+}
+
+
+.collection-modal .modal-header {
+
+    padding: 20px 25px;
+    border-bottom: 1px solid #eee;
+
+}
+
+
+.collection-modal .modal-body {
+
+    padding: 25px;
+
+}
+
+
+
+.collection-options {
+
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+
+}
+
+
+
+.collection-card {
+    display: block;
+    position: relative;
+    border: 2px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+
+.collection-card:hover {
+    border-color: #0d6efd;
+    background: #f8fbff;
+}
+
+
+.collection-card input[type="radio"] {
+
+    position: absolute;
+    top: 20px;
+    right: 20px;
+
+    width: 18px;
+    height: 18px;
+
+    opacity: 1;
+
+    cursor: pointer;
+
+}
+
+
+.collection-card:has(input[type="radio"]:checked) {
+
+    border-color: #0d6efd;
+    background: #eef6ff;
+
+}
+
+
+.collection-card:has(input[type="radio"]:checked)
+.collection-icon {
+
+    background: #0d6efd;
+    color: white;
+
+}
+
+
+.collection-content {
+
+    display: flex;
+    align-items: center;
+    gap: 18px;
+
+}
+
+
+
+.collection-icon {
+
+    width: 50px;
+    height: 50px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: #f1f5f9;
+
+    font-size: 26px;
+
+}
+
+
+
+.collection-content h6 {
+
+    margin: 0;
+    font-weight: 600;
+
+}
+
+
+
+.collection-content p {
+
+    margin: 4px 0 0;
+
+    color: #6c757d;
+
+    font-size: 14px;
+
+}
+
+
+
+.modal-footer {
+
+    padding: 18px 25px;
+
+    border-top: 1px solid #eee;
+
+}
+
+
+
+/* Mobile Responsive */
+
+@media(max-width:576px){
+
+
+    .modal-dialog {
+
+        margin: 15px;
+
+    }
+
+
+    .collection-content {
+
+        gap: 12px;
+
+    }
+
+
+    .collection-icon {
+
+        width:42px;
+        height:42px;
+        font-size:22px;
+
+    }
+
+
+}
