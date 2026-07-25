@@ -12,4 +12,9 @@ public class MonitoringViewController {
     public String dashboard(){
         return "forward:/monitoring-ui/API-List/index.html";
     }
+
+    @GetMapping("/database")
+    public String databsedashboard(){
+        return "forward:/monitoring-ui/Database/index.html";
+    }
 }

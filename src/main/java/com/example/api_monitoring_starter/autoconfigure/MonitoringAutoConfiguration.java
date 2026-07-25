@@ -1,5 +1,8 @@
 package com.example.api_monitoring_starter.autoconfigure;
 
+import com.example.api_monitoring_starter.Database.Controller.DatabaseController;
+import com.example.api_monitoring_starter.Database.Scanner.EntityScannerService;
+import com.example.api_monitoring_starter.Database.Service.DatabaseMetadataService;
 import com.example.api_monitoring_starter.Service.ApiRegistryService;
 import com.example.api_monitoring_starter.Service.OpenApiExportService;
 import com.example.api_monitoring_starter.controller.ApiExportController;
@@ -16,6 +19,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+
+import javax.sql.DataSource;
 
 
 @AutoConfiguration
@@ -107,6 +112,24 @@ public class MonitoringAutoConfiguration {
     @Bean
     public PostmanExportService postmanExportService(ApiRegistryService apiRegistryService) {
         return new PostmanExportService(new ObjectMapper(), apiRegistryService);
+    }
+    @Bean
+    public DatabaseMetadataService databaseMetadataService(
+            DataSource dataSource,
+            EntityScannerService entityScannerService
+    ) {
+        return new DatabaseMetadataService(
+                dataSource,
+                entityScannerService
+        );
+    }
+    @Bean
+    public EntityScannerService entityScannerService() {
+        return new EntityScannerService();
+    }
+    @Bean
+    public DatabaseController databaseController(DatabaseMetadataService service) {
+        return new DatabaseController(service);
     }
 
 }
