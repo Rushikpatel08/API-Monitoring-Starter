@@ -1,6 +1,5 @@
 package com.example.api_monitoring_starter.Database.Service;
 
-
 import com.example.api_monitoring_starter.Database.DTO.DatabaseDTO;
 import com.example.api_monitoring_starter.Database.DTO.SchemaDTO;
 import com.example.api_monitoring_starter.Database.DTO.TableDTO;
@@ -9,19 +8,20 @@ import com.example.api_monitoring_starter.Database.Scanner.EntityScannerService;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-
+import java.util.Map;
 
 @Service
 public class DatabaseMetadataService {
 
-
     private final DataSource dataSource;
-
     private final EntityScannerService entityScannerService;
-
 
     public DatabaseMetadataService(
             DataSource dataSource,
@@ -31,574 +31,412 @@ public class DatabaseMetadataService {
         this.entityScannerService = entityScannerService;
     }
 
-
-
     public DatabaseDTO scanDatabase() throws Exception {
-
 
         DatabaseDTO database = new DatabaseDTO();
 
-
-        try(Connection connection = dataSource.getConnection()) {
-
+        try (Connection connection =
+                     dataSource.getConnection()) {
 
             DatabaseMetaData metadata =
                     connection.getMetaData();
 
-
+            // -----------------------------------------
+            // DATABASE INFORMATION
+            // -----------------------------------------
 
             database.setDatabaseName(
                     metadata.getDatabaseProductName()
             );
 
-
             database.setDatabaseVersion(
                     metadata.getDatabaseProductVersion()
             );
-
 
             database.setDriverName(
                     metadata.getDriverName()
             );
 
-
             database.setUrl(
                     metadata.getURL()
             );
 
-
-
-            boolean mysql =
-                    metadata.getDatabaseProductName()
-                            .equalsIgnoreCase("MySQL");
-
-
+            // -----------------------------------------
+            // SCAN TABLES DYNAMICALLY
+            // -----------------------------------------
 
             List<SchemaDTO> schemas =
-                    new ArrayList<>();
+                    scanSchemas(metadata);
 
-
-
-            ResultSet schemaResult;
-
-
-            if(mysql){
-
-                // MySQL databases are catalogs
-                schemaResult =
-                        metadata.getCatalogs();
-
-            }
-            else{
-
-                // H2, PostgreSQL etc.
-                schemaResult =
-                        metadata.getSchemas();
-
-            }
-
-
-
-            try(schemaResult){
-
-
-                while(schemaResult.next()) {
-
-
-                    String schemaName;
-
-
-                    if(mysql){
-
-                        schemaName =
-                                schemaResult.getString(
-                                        "TABLE_CAT"
-                                );
-
-                    }
-                    else{
-
-                        schemaName =
-                                schemaResult.getString(
-                                        "TABLE_SCHEM"
-                                );
-
-                    }
-
-
-
-                    if(isSystemSchema(schemaName)) {
-                        continue;
-                    }
-
-
-
-                    List<TableDTO> tables =
-                            getTables(
-                                    metadata,
-                                    schemaName,
-                                    mysql
-                            );
-
-
-
-                    if(!tables.isEmpty()) {
-
-
-                        SchemaDTO schema =
-                                new SchemaDTO();
-
-
-                        schema.setSchemaName(
-                                schemaName
-                        );
-
-
-                        schema.setTables(
-                                tables
-                        );
-
-
-                        schemas.add(schema);
-
-                    }
-
-                }
-
-            }
-
-
-
-            database.setSchemas(
-                    schemas
-            );
-
-
+            database.setSchemas(schemas);
         }
 
-
         return database;
-
     }
 
-
-
-
-
-
-
-    private List<TableDTO> getTables(
-            DatabaseMetaData metadata,
-            String schemaName,
-            boolean mysql
+    /**
+     * Dynamically scans catalogs/schemas/tables.
+     *
+     * No MySQL/PostgreSQL/Oracle/SQL Server
+     * specific branching is required here.
+     */
+    private List<SchemaDTO> scanSchemas(
+            DatabaseMetaData metadata
     ) throws SQLException {
 
-
-        List<TableDTO> tables =
-                new ArrayList<>();
-
-
+        /*
+         * LinkedHashMap preserves the order returned
+         * by the database driver.
+         *
+         * Key:
+         * catalog + schema
+         */
+        Map<String, SchemaDTO> schemaMap =
+                new LinkedHashMap<>();
 
         String[] tableTypes =
                 getSupportedTableTypes(metadata);
 
+        try (ResultSet result =
+                     metadata.getTables(
+                             null,
+                             null,
+                             "%",
+                             tableTypes
+                     )) {
 
+            while (result.next()) {
 
+                String catalog =
+                        result.getString("TABLE_CAT");
 
-        ResultSet result;
-
-
-
-        if(mysql){
-
-
-            result =
-                    metadata.getTables(
-                            schemaName,
-                            null,
-                            "%",
-                            tableTypes
-                    );
-
-        }
-        else{
-
-
-            result =
-                    metadata.getTables(
-                            null,
-                            schemaName,
-                            "%",
-                            tableTypes
-                    );
-
-        }
-
-
-
-        try(result){
-
-
-            while(result.next()) {
-
+                String schemaName =
+                        result.getString("TABLE_SCHEM");
 
                 String tableName =
-                        result.getString(
-                                "TABLE_NAME"
+                        result.getString("TABLE_NAME");
+
+                String tableType =
+                        result.getString("TABLE_TYPE");
+
+                if (tableName == null) {
+                    continue;
+                }
+
+                /*
+                 * Skip system objects.
+                 */
+                if (isSystemObject(
+                        catalog,
+                        schemaName,
+                        tableName
+                )) {
+                    continue;
+                }
+
+                String schemaKey =
+                        createSchemaKey(
+                                catalog,
+                                schemaName
                         );
 
+                SchemaDTO schema =
+                        schemaMap.get(schemaKey);
 
+                if (schema == null) {
+
+                    schema =
+                            new SchemaDTO();
+
+                    schema.setSchemaName(
+                            determineDisplaySchemaName(
+                                    catalog,
+                                    schemaName
+                            )
+                    );
+
+                    schema.setTables(
+                            new ArrayList<>()
+                    );
+
+                    schemaMap.put(
+                            schemaKey,
+                            schema
+                    );
+                }
 
                 TableDTO table =
-                        new TableDTO();
-
-
-
-                table.setTableName(
-                        tableName
-                );
-
-
-
-                table.setTableType(
-                        result.getString(
-                                "TABLE_TYPE"
-                        )
-                );
-
-
-
-                table.setColumnCount(
-                        getColumnCount(
+                        buildTable(
                                 metadata,
+                                catalog,
                                 schemaName,
                                 tableName,
-                                mysql
-                        )
-                );
+                                tableType
+                        );
 
-
-
-                table.setPrimaryKeyCount(
-                        getPrimaryKeyCount(
-                                metadata,
-                                schemaName,
-                                tableName,
-                                mysql
-                        )
-                );
-
-
-
-                table.setForeignKeyCount(
-                        getForeignKeyCount(
-                                metadata,
-                                schemaName,
-                                tableName,
-                                mysql
-                        )
-                );
-
-
-
-                table.setEntityName(
-                        entityScannerService
-                                .getEntityName(
-                                        tableName
-                                )
-                );
-
-
-
-                tables.add(table);
-
+                schema.getTables().add(table);
             }
-
         }
 
-
-
-        return tables;
-
+        return new ArrayList<>(
+                schemaMap.values()
+        );
     }
 
+    /**
+     * Builds table information using standard JDBC metadata.
+     */
+    private TableDTO buildTable(
+            DatabaseMetaData metadata,
+            String catalog,
+            String schema,
+            String tableName,
+            String tableType
+    ) throws SQLException {
 
+        TableDTO table =
+                new TableDTO();
 
+        table.setTableName(
+                tableName
+        );
 
+        table.setTableType(
+                tableType
+        );
 
+        table.setColumnCount(
+                getColumnCount(
+                        metadata,
+                        catalog,
+                        schema,
+                        tableName
+                )
+        );
 
+        table.setPrimaryKeyCount(
+                getPrimaryKeyCount(
+                        metadata,
+                        catalog,
+                        schema,
+                        tableName
+                )
+        );
 
+        table.setForeignKeyCount(
+                getForeignKeyCount(
+                        metadata,
+                        catalog,
+                        schema,
+                        tableName
+                )
+        );
 
+        table.setEntityName(
+                entityScannerService
+                        .getEntityName(tableName)
+        );
 
+        return table;
+    }
+
+    /**
+     * Get every table type supported by the database driver.
+     *
+     * This prevents hardcoding:
+     *
+     * TABLE
+     * VIEW
+     * BASE TABLE
+     * etc.
+     */
     private String[] getSupportedTableTypes(
             DatabaseMetaData metadata
     ) throws SQLException {
 
-
         List<String> types =
                 new ArrayList<>();
 
+        try (ResultSet rs =
+                     metadata.getTableTypes()) {
 
-        try(ResultSet rs =
-                    metadata.getTableTypes()){
-
-
-            while(rs.next()){
-
+            while (rs.next()) {
 
                 String type =
-                        rs.getString(
-                                "TABLE_TYPE"
-                        );
+                        rs.getString("TABLE_TYPE");
 
-
-                if(type != null){
-
+                if (type != null) {
                     types.add(type);
-
                 }
-
             }
-
         }
-
 
         return types.toArray(
                 new String[0]
         );
-
     }
-
-
-
-
-
-
-
-
 
     private int getColumnCount(
             DatabaseMetaData metadata,
+            String catalog,
             String schema,
-            String table,
-            boolean mysql
+            String table
     ) throws SQLException {
-
 
         int count = 0;
 
+        try (ResultSet rs =
+                     metadata.getColumns(
+                             catalog,
+                             schema,
+                             table,
+                             "%"
+                     )) {
 
-
-        ResultSet rs;
-
-
-
-        if(mysql){
-
-            rs =
-                    metadata.getColumns(
-                            schema,
-                            null,
-                            table,
-                            "%"
-                    );
-
-        }
-        else{
-
-            rs =
-                    metadata.getColumns(
-                            null,
-                            schema,
-                            table,
-                            "%"
-                    );
-
-        }
-
-
-
-
-        try(rs){
-
-
-            while(rs.next()){
-
+            while (rs.next()) {
                 count++;
-
             }
-
         }
-
 
         return count;
-
     }
-
-
-
-
-
-
-
-
 
     private int getPrimaryKeyCount(
             DatabaseMetaData metadata,
+            String catalog,
             String schema,
-            String table,
-            boolean mysql
+            String table
     ) throws SQLException {
-
 
         int count = 0;
 
+        try (ResultSet rs =
+                     metadata.getPrimaryKeys(
+                             catalog,
+                             schema,
+                             table
+                     )) {
 
-
-        ResultSet rs;
-
-
-
-        if(mysql){
-
-            rs =
-                    metadata.getPrimaryKeys(
-                            schema,
-                            null,
-                            table
-                    );
-
-        }
-        else{
-
-            rs =
-                    metadata.getPrimaryKeys(
-                            null,
-                            schema,
-                            table
-                    );
-
-        }
-
-
-
-
-        try(rs){
-
-
-            while(rs.next()){
-
+            while (rs.next()) {
                 count++;
-
             }
-
         }
-
-
 
         return count;
-
     }
-
-
-
-
-
-
-
-
 
     private int getForeignKeyCount(
             DatabaseMetaData metadata,
+            String catalog,
             String schema,
-            String table,
-            boolean mysql
+            String table
     ) throws SQLException {
-
 
         int count = 0;
 
+        try (ResultSet rs =
+                     metadata.getImportedKeys(
+                             catalog,
+                             schema,
+                             table
+                     )) {
 
-
-        ResultSet rs;
-
-
-
-        if(mysql){
-
-
-            rs =
-                    metadata.getImportedKeys(
-                            schema,
-                            null,
-                            table
-                    );
-
-        }
-        else{
-
-
-            rs =
-                    metadata.getImportedKeys(
-                            null,
-                            schema,
-                            table
-                    );
-
-        }
-
-
-
-
-        try(rs){
-
-
-            while(rs.next()){
-
+            while (rs.next()) {
                 count++;
-
             }
-
         }
-
-
 
         return count;
-
     }
 
-
-
-
-
-
-
-
-
-    private boolean isSystemSchema(
-            String schemaName
+    /**
+     * Creates a unique schema key.
+     *
+     * Some databases use catalog as the database,
+     * while others use schema.
+     */
+    private String createSchemaKey(
+            String catalog,
+            String schema
     ) {
 
-
-        if(schemaName == null){
-            return true;
-        }
-
-
-
-        String schema =
-                schemaName.toUpperCase();
-
-
-
-        return schema.equals("INFORMATION_SCHEMA")
-                || schema.equals("PG_CATALOG")
-                || schema.equals("MYSQL")
-                || schema.equals("PERFORMANCE_SCHEMA")
-                || schema.equals("SYS")
-                || schema.equals("SYSTEM")
-                || schema.startsWith("SYS_");
-
+        return normalize(catalog)
+                + "::"
+                + normalize(schema);
     }
 
+    /**
+     * Determines what should be displayed in the UI.
+     */
+    private String determineDisplaySchemaName(
+            String catalog,
+            String schema
+    ) {
+
+        if (schema != null && !schema.isBlank()) {
+            return schema;
+        }
+
+        if (catalog != null && !catalog.isBlank()) {
+            return catalog;
+        }
+
+        return "DEFAULT";
+    }
+
+    /**
+     * Filters common system objects.
+     *
+     * This does not determine how the database is scanned.
+     * It only prevents internal database objects from
+     * cluttering the Database Explorer.
+     */
+    private boolean isSystemObject(
+            String catalog,
+            String schema,
+            String table
+    ) {
+
+        return isSystemName(catalog)
+                || isSystemName(schema)
+                || isSystemName(table);
+    }
+
+    private boolean isSystemName(
+            String value
+    ) {
+
+        if (value == null) {
+            return false;
+        }
+
+        String name =
+                value.trim().toUpperCase();
+
+        return name.equals("INFORMATION_SCHEMA")
+                || name.equals("PG_CATALOG")
+                || name.equals("PERFORMANCE_SCHEMA")
+                || name.equals("SYS")
+                || name.equals("SYSTEM")
+                || name.equals("SYSCAT")
+                || name.equals("SYSIBM")
+                || name.equals("MYSQL")
+                || name.startsWith("SYS_");
+    }
+
+    private String normalize(
+            String value
+    ) {
+
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .trim()
+                .replace("\"", "")
+                .replace("`", "")
+                .replace("[", "]")
+                .toLowerCase();
+    }
 }

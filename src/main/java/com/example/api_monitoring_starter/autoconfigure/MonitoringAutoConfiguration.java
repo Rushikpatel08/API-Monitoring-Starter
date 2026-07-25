@@ -12,24 +12,39 @@ import com.example.api_monitoring_starter.exporter.BrunoExportService;
 import com.example.api_monitoring_starter.exporter.InsomniaExportService;
 import com.example.api_monitoring_starter.exporter.PostmanExportService;
 import com.example.api_monitoring_starter.scanner.ApiScanner;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManager;
+
+import jakarta.persistence.EntityManagerFactory;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Bean;
+
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import javax.sql.DataSource;
 
 @AutoConfiguration
+@AutoConfigureAfter(HibernateJpaAutoConfiguration.class)
 public class MonitoringAutoConfiguration {
+
+    // =========================================================
+    // API MONITORING
+    // =========================================================
 
     @Bean
     public ApiScanner apiScanner(
             @Qualifier("requestMappingHandlerMapping")
             RequestMappingHandlerMapping requestMappingHandlerMapping
     ) {
-        return new ApiScanner(requestMappingHandlerMapping);
+        return new ApiScanner(
+                requestMappingHandlerMapping
+        );
     }
 
     @Bean
@@ -55,7 +70,9 @@ public class MonitoringAutoConfiguration {
     public OpenApiExportService openApiExportService(
             ApiRegistryService apiRegistryService
     ) {
-        return new OpenApiExportService(apiRegistryService);
+        return new OpenApiExportService(
+                apiRegistryService
+        );
     }
 
     @Bean
@@ -106,18 +123,23 @@ public class MonitoringAutoConfiguration {
         );
     }
 
-    // =========================
+    // =========================================================
     // DATABASE EXPLORER
-    // =========================
+    // =========================================================
 
     @Bean
+    @ConditionalOnClass(EntityManagerFactory.class)
+    @ConditionalOnBean(EntityManagerFactory.class)
     public EntityScannerService entityScannerService(
-            EntityManager entityManager
+            EntityManagerFactory entityManagerFactory
     ) {
-        return new EntityScannerService(entityManager);
+        return new EntityScannerService(
+                entityManagerFactory
+        );
     }
 
     @Bean
+    @ConditionalOnBean(EntityScannerService.class)
     public DatabaseMetadataService databaseMetadataService(
             DataSource dataSource,
             EntityScannerService entityScannerService
@@ -129,9 +151,12 @@ public class MonitoringAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(DatabaseMetadataService.class)
     public DatabaseController databaseController(
             DatabaseMetadataService databaseMetadataService
     ) {
-        return new DatabaseController(databaseMetadataService);
+        return new DatabaseController(
+                databaseMetadataService
+        );
     }
 }

@@ -1,42 +1,119 @@
 package com.example.api_monitoring_starter.Database.Scanner;
 
-import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Table;
 import jakarta.persistence.metamodel.EntityType;
+import jakarta.persistence.metamodel.Metamodel;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class EntityScannerService {
 
-    private final EntityManager entityManager;
+    private final EntityManagerFactory entityManagerFactory;
 
-    public EntityScannerService(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    private final Map<String, String> entityMappings = new HashMap<>();
+
+    public EntityScannerService(
+            EntityManagerFactory entityManagerFactory
+    ) {
+        this.entityManagerFactory = entityManagerFactory;
+
+        loadEntityMappings();
     }
 
-    public String getEntityName(String tableName) {
+    /**
+     * Discover all JPA entities dynamically.
+     */
+    private void loadEntityMappings() {
+
+        Metamodel metamodel =
+                entityManagerFactory.getMetamodel();
 
         Set<EntityType<?>> entities =
-                entityManager
-                        .getMetamodel()
-                        .getEntities();
+                metamodel.getEntities();
 
         for (EntityType<?> entity : entities) {
 
-            Class<?> javaType = entity.getJavaType();
+            Class<?> javaType =
+                    entity.getJavaType();
 
-            jakarta.persistence.Table table =
-                    javaType.getAnnotation(jakarta.persistence.Table.class);
+            String entityName =
+                    entity.getName();
 
-            if (table != null) {
+            Table table =
+                    javaType.getAnnotation(Table.class);
 
-                String entityTableName = table.name();
+            if (table != null && !table.name().isBlank()) {
 
-                if (entityTableName.equalsIgnoreCase(tableName)) {
-                    return entity.getName();
-                }
+                String tableName =
+                        table.name();
+
+                entityMappings.put(
+                        normalize(tableName),
+                        entityName
+                );
+
             }
+
+            /*
+             * Also support entities without @Table.
+             *
+             * Example:
+             *
+             * @Entity
+             * public class Mobile {}
+             *
+             * JPA defaults the table name from the entity mapping.
+             */
+            entityMappings.putIfAbsent(
+                    normalize(entityName),
+                    entityName
+            );
+
+            entityMappings.putIfAbsent(
+                    normalize(javaType.getSimpleName()),
+                    entityName
+            );
+        }
+    }
+
+    /**
+     * Find JPA entity associated with a database table.
+     */
+    public String getEntityName(String tableName) {
+
+        if (tableName == null) {
+            return null;
         }
 
-        return null;
+        return entityMappings.get(
+                normalize(tableName)
+        );
+    }
+
+    /**
+     * Normalize database identifiers so that:
+     *
+     * MOBILE
+     * mobile
+     * Mobile
+     *
+     * can all match.
+     */
+    private String normalize(String value) {
+
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .trim()
+                .replace("\"", "")
+                .replace("`", "")
+                .replace("[", "")
+                .replace("]", "")
+                .toLowerCase();
     }
 }
