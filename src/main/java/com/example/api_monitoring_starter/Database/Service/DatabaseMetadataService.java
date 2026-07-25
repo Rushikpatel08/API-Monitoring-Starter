@@ -1,5 +1,6 @@
 package com.example.api_monitoring_starter.Database.Service;
 
+import com.example.api_monitoring_starter.Database.DTO.ColumnDTO;
 import com.example.api_monitoring_starter.Database.DTO.DatabaseDTO;
 import com.example.api_monitoring_starter.Database.DTO.SchemaDTO;
 import com.example.api_monitoring_starter.Database.DTO.TableDTO;
@@ -16,7 +17,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.sql.Types;
+import java.util.HashSet;
+import java.util.Set;
 @Service
 public class DatabaseMetadataService {
 
@@ -423,7 +426,254 @@ public class DatabaseMetadataService {
                 || name.equals("MYSQL")
                 || name.startsWith("SYS_");
     }
+    public List<ColumnDTO> getTableDetails(
+            String catalog,
+            String schema,
+            String table
+    ) throws SQLException {
 
+        List<ColumnDTO> columns = new ArrayList<>();
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            DatabaseMetaData metadata =
+                    connection.getMetaData();
+
+            Set<String> primaryKeys =
+                    getPrimaryKeyColumns(
+                            metadata,
+                            catalog,
+                            schema,
+                            table
+                    );
+
+            Set<String> foreignKeys =
+                    getForeignKeyColumns(
+                            metadata,
+                            catalog,
+                            schema,
+                            table
+                    );
+
+            try (ResultSet rs =
+                         metadata.getColumns(
+                                 catalog,
+                                 schema,
+                                 table,
+                                 "%"
+                         )) {
+
+                while (rs.next()) {
+
+                    ColumnDTO column =
+                            new ColumnDTO();
+
+                    String columnName =
+                            rs.getString("COLUMN_NAME");
+
+                    column.setColumnName(columnName);
+
+                    column.setDataType(
+                            rs.getString("TYPE_NAME")
+                    );
+
+                    column.setSqlType(
+                            getSqlTypeName(
+                                    rs.getInt("DATA_TYPE")
+                            )
+                    );
+
+                    column.setSize(
+                            rs.getInt("COLUMN_SIZE")
+                    );
+
+                    column.setDecimalDigits(
+                            rs.getInt("DECIMAL_DIGITS")
+                    );
+
+                    column.setNullable(
+                            "YES".equalsIgnoreCase(
+                                    rs.getString("IS_NULLABLE")
+                            )
+                    );
+
+                    column.setDefaultValue(
+                            rs.getString("COLUMN_DEF")
+                    );
+
+                    column.setAutoIncrement(
+                            "YES".equalsIgnoreCase(
+                                    rs.getString("IS_AUTOINCREMENT")
+                            )
+                    );
+
+                    column.setPrimaryKey(
+                            primaryKeys.contains(
+                                    normalize(columnName)
+                            )
+                    );
+
+                    column.setForeignKey(
+                            foreignKeys.contains(
+                                    normalize(columnName)
+                            )
+                    );
+
+                    columns.add(column);
+                }
+            }
+        }
+
+        return columns;
+    }
+    private String getSqlTypeName(int sqlType) {
+
+        switch (sqlType) {
+
+            case Types.BIGINT:
+                return "BIGINT";
+
+            case Types.INTEGER:
+                return "INTEGER";
+
+            case Types.SMALLINT:
+                return "SMALLINT";
+
+            case Types.TINYINT:
+                return "TINYINT";
+
+            case Types.VARCHAR:
+                return "VARCHAR";
+
+            case Types.CHAR:
+                return "CHAR";
+
+            case Types.LONGVARCHAR:
+                return "LONGVARCHAR";
+
+            case Types.DATE:
+                return "DATE";
+
+            case Types.TIME:
+                return "TIME";
+
+            case Types.TIMESTAMP:
+                return "TIMESTAMP";
+
+            case Types.TIMESTAMP_WITH_TIMEZONE:
+                return "TIMESTAMP WITH TIME ZONE";
+
+            case Types.BOOLEAN:
+                return "BOOLEAN";
+
+            case Types.DECIMAL:
+                return "DECIMAL";
+
+            case Types.NUMERIC:
+                return "NUMERIC";
+
+            case Types.DOUBLE:
+                return "DOUBLE";
+
+            case Types.FLOAT:
+                return "FLOAT";
+
+            case Types.REAL:
+                return "REAL";
+
+            case Types.BINARY:
+                return "BINARY";
+
+            case Types.VARBINARY:
+                return "VARBINARY";
+
+            case Types.LONGVARBINARY:
+                return "LONGVARBINARY";
+
+            case Types.BLOB:
+                return "BLOB";
+
+            case Types.CLOB:
+                return "CLOB";
+
+            case Types.LONGNVARCHAR:
+                return "LONGNVARCHAR";
+
+            case Types.NVARCHAR:
+                return "NVARCHAR";
+
+            case Types.NCHAR:
+                return "NCHAR";
+
+            case Types.SQLXML:
+                return "SQLXML";
+
+            default:
+                return "UNKNOWN";
+        }
+    }
+    private Set<String> getPrimaryKeyColumns(
+            DatabaseMetaData metadata,
+            String catalog,
+            String schema,
+            String table
+    ) throws SQLException {
+
+        Set<String> columns = new HashSet<>();
+
+        try (ResultSet rs =
+                     metadata.getPrimaryKeys(
+                             catalog,
+                             schema,
+                             table
+                     )) {
+
+            while (rs.next()) {
+
+                String column =
+                        rs.getString("COLUMN_NAME");
+
+                if (column != null) {
+                    columns.add(
+                            normalize(column)
+                    );
+                }
+            }
+        }
+
+        return columns;
+    }
+    private Set<String> getForeignKeyColumns(
+            DatabaseMetaData metadata,
+            String catalog,
+            String schema,
+            String table
+    ) throws SQLException {
+
+        Set<String> columns = new HashSet<>();
+
+        try (ResultSet rs =
+                     metadata.getImportedKeys(
+                             catalog,
+                             schema,
+                             table
+                     )) {
+
+            while (rs.next()) {
+
+                String column =
+                        rs.getString("FKCOLUMN_NAME");
+
+                if (column != null) {
+                    columns.add(
+                            normalize(column)
+                    );
+                }
+            }
+        }
+
+        return columns;
+    }
     private String normalize(
             String value
     ) {
