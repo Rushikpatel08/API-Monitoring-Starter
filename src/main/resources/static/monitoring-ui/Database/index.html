@@ -1,117 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
+
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+    >
+
     <title>Database Explorer</title>
-    <link rel="stylesheet" href="/monitoring-ui/Database/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link
+            rel="stylesheet"
+            href="/monitoring-ui/Database/style.css"
+    >
+
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+    >
+
 </head>
+
+
 <body>
+
+<!-- Page Title -->
+
 <div class="title_box">
-    <span class="title">Database/Schema List</span>
+
+        <span class="title">
+            Database Explorer
+        </span>
+
 </div>
-<div class="content_box">
-    <div class="page">
 
 
-        <!-- Header -->
-        <header>
+<main class="content_box">
+
+    <!-- Database Header -->
+
+    <header class="page-header">
+
+        <div>
+
             <h1>
                 Database Explorer
             </h1>
-        </header>
+
+            <p>
+                Explore database schemas, tables,
+                columns, and relationships.
+            </p>
+
+        </div>
+
+    </header>
 
 
+    <!-- Database Summary -->
 
-        <!-- Database Summary -->
+    <section
+            id="database-summary"
+            class="database-card"
+    >
 
-        <section id="database-summary">
-
-            <div class="database-card">
-
-                <div class="database-header">
-                    🗄 Database Explorer
-                </div>
-
-
-                <div class="database-info">
-
-                    <div class="info-box">
-                        <span class="label">Database</span>
-                        <span id="database-name"></span>
-                    </div>
+        <div class="database-header">
+            🗄 Database Information
+        </div>
 
 
-
-                    <div class="info-box">
-                        <span class="label">Version</span>
-                        <span id="database-version"></span>
-                    </div>
+        <div class="database-info">
 
 
-                    <div class="info-box">
-                        <span class="label">Driver</span>
-                        <span id="database-driver"></span>
-                    </div>
+            <div class="info-box">
 
+                    <span class="label">
+                        Database
+                    </span>
 
-                    <div class="info-box">
-                        <span class="label">Connection</span>
-                        <span id="database-url"></span>
-                    </div>
-
-
-                    <div class="info-box">
-                        <span class="label">Schemas</span>
-                        <span id="schema-count"></span>
-                    </div>
-
-                </div>
+                <strong id="database-name">
+                    Loading...
+                </strong>
 
             </div>
 
-        </section>
+
+            <div class="info-box">
+
+                    <span class="label">
+                        Version
+                    </span>
+
+                <strong id="database-version">
+                    Loading...
+                </strong>
+
+            </div>
 
 
+            <div class="info-box">
 
-        <!-- Schema Area -->
+                    <span class="label">
+                        Driver
+                    </span>
 
-        <!-- Schema Area -->
+                <strong id="database-driver">
+                    Loading...
+                </strong>
 
-        <section>
-
-            <h2>
-                Schemas
-            </h2>
-
-            <div id="schema-container"></div>
-
-        </section>
+            </div>
 
 
-        <!-- Table Details Area -->
+            <div class="info-box">
 
-        <hr class="my-4">
+                    <span class="label">
+                        Connection
+                    </span>
 
-        <section id="table-details-section" style="display:none;">
+                <strong
+                        id="database-url"
+                        class="connection-value"
+                >
+                    Loading...
+                </strong>
 
-            <h2>
-                Table Details
-            </h2>
-
-            <div id="table-details-container"></div>
-
-        </section>
-
-
-    </div>
+            </div>
 
 
+            <div class="info-box">
+
+                    <span class="label">
+                        Schemas
+                    </span>
+
+                <strong id="schema-count">
+                    -
+                </strong>
+
+            </div>
 
 
-</div>
-<script src="/monitoring-ui/Database/app.js"></script>
+        </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    </section>
+
+
+    <!-- Schema Section -->
+
+    <section class="section">
+
+        <div class="section-header">
+
+            <div>
+
+                <h2>
+                    📂 Schemas & Tables
+                </h2>
+
+                <p>
+                    Select a table to view its
+                    column information.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div id="schema-container">
+
+            <div class="loading-state">
+
+                <div class="spinner-border"></div>
+
+                <span>
+                        Loading database structure...
+                    </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Table Details -->
+
+    <section
+            id="table-details-section"
+            class="section hidden"
+    >
+
+        <div class="section-header">
+
+            <div>
+
+                <h2>
+                    🔎 Table Details
+                </h2>
+
+                <p>
+                    Detailed information about
+                    the selected table.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div id="table-details-container">
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+<script
+        src="/monitoring-ui/Database/app.js"
+></script>
+
+
+<script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+></script>
+
 </body>
+
 </html>

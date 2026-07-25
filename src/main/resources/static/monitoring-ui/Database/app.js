@@ -1,181 +1,324 @@
-fetch('/monitoring/databases')
-    .then(response => {
+document.addEventListener("DOMContentLoaded", () => {
+    loadDatabase();
 
-        if (!response.ok) {
-            throw new Error("Failed to load database metadata");
-        }
+    // Event delegation for table clicks
+    document
+        .getElementById("schema-container")
+        .addEventListener("click", function (event) {
 
-        return response.json();
-    })
-    .then(data => {
+            const tableButton =
+                event.target.closest(".table-link");
 
-        loadDatabase(data);
+            if (!tableButton) {
+                return;
+            }
 
-    })
-    .catch(error => {
+            const schema =
+                tableButton.dataset.schema;
 
-        document.getElementById("database-summary").innerHTML =
-        `
-        <div class="alert alert-danger">
-            Error loading database metadata
-        </div>
-        `;
+            const table =
+                tableButton.dataset.table;
 
-        console.error(error);
-
-    });
-
-
-function loadDatabase(database) {
-
-    document.getElementById("database-name").innerHTML =
-        `
-        🗄 ${database.databaseName}
-        `;
-
-
-    document.getElementById("database-version").innerHTML =
-        database.databaseVersion || "-";
-
-
-    document.getElementById("database-driver").innerHTML =
-        database.driverName || "-";
-
-
-    document.getElementById("database-url").innerHTML =
-        database.url || "-";
-
-
-    document.getElementById("schema-count").innerHTML =
-        database.schemas
-            ? database.schemas.length
-            : 0;
-
-
-    let schemaHTML = "";
-
-
-    if (!database.schemas || database.schemas.length === 0) {
-
-        schemaHTML =
-        `
-        <div class="alert alert-warning">
-            No schema information found
-        </div>
-        `;
-
-    }
-    else {
-
-        database.schemas.forEach(schema => {
-
-            schemaHTML +=
-            `
-            <div class="schema-card">
-
-                <h3>
-                    📂 ${schema.schemaName}
-                </h3>
-
-                <p>
-                    Tables:
-                    <b>${schema.tables.length}</b>
-                </p>
-
-                <table class="table table-striped table-bordered">
-
-                    <thead>
-                        <tr>
-                            <th>Table</th>
-                            <th>Type</th>
-                            <th>Columns</th>
-                            <th>Primary Key</th>
-                            <th>Foreign Key</th>
-                            <th>Entity</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-            `;
-
-
-            schema.tables.forEach(table => {
-
-                schemaHTML +=
-                `
-                    <tr>
-
-                        <td>
-                            <button
-                                type="button"
-                                class="btn btn-link table-link"
-                                onclick="showTableDetails(
-                                    '${escapeHtml(schema.schemaName)}',
-                                    '${escapeHtml(table.tableName)}'
-                                )"
-                            >
-                                📄 ${escapeHtml(table.tableName)}
-                            </button>
-                        </td>
-
-                        <td>
-                            ${escapeHtml(table.tableType)}
-                        </td>
-
-                        <td>
-                            ${table.columnCount}
-                        </td>
-
-                        <td>
-                            🔑 ${table.primaryKeyCount}
-                        </td>
-
-                        <td>
-                            🔗 ${table.foreignKeyCount}
-                        </td>
-
-                        <td class="entity">
-                            ${escapeHtml(table.entityName || "-")}
-                        </td>
-
-                    </tr>
-                `;
-
-            });
-
-
-            schemaHTML +=
-            `
-                    </tbody>
-
-                </table>
-
-            </div>
-            `;
-
+            showTableDetails(schema, table);
         });
+});
 
-    }
 
+/*
+ * Load database information
+ */
+function loadDatabase() {
 
-    document.getElementById("schema-container")
-        .innerHTML = schemaHTML;
+    fetch("/monitoring/databases")
+        .then(response => {
+
+            if (!response.ok) {
+                throw new Error(
+                    "Failed to load database metadata"
+                );
+            }
+
+            return response.json();
+        })
+        .then(database => {
+
+            renderDatabaseSummary(database);
+            renderSchemas(database);
+
+        })
+        .catch(error => {
+
+            document.getElementById(
+                "database-summary"
+            ).innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>Error:</strong>
+                    Unable to load database metadata.
+                </div>
+            `;
+
+            console.error(error);
+        });
 }
 
 
 /*
- * Load details for selected table
+ * Database summary
+ */
+function renderDatabaseSummary(database) {
+
+    document.getElementById("database-name").textContent =
+        database.databaseName || "-";
+
+    document.getElementById("database-version").textContent =
+        database.databaseVersion || "-";
+
+    document.getElementById("database-driver").textContent =
+        database.driverName || "-";
+
+    document.getElementById("database-url").textContent =
+        database.url || "-";
+
+    document.getElementById("schema-count").textContent =
+        database.schemas
+            ? database.schemas.length
+            : 0;
+}
+
+
+/*
+ * Render schemas and tables
+ */
+function renderSchemas(database) {
+
+    const container =
+        document.getElementById(
+            "schema-container"
+        );
+
+    if (
+        !database.schemas ||
+        database.schemas.length === 0
+    ) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📂</div>
+                <h3>No schemas found</h3>
+                <p>
+                    No database schemas were returned
+                    by the database connection.
+                </p>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    let html = "";
+
+
+    database.schemas.forEach((schema, schemaIndex) => {
+
+        const tables =
+            schema.tables || [];
+
+
+        html += `
+            <div class="schema-card">
+
+                <div class="schema-header">
+
+                    <div>
+                        <div class="schema-title">
+                            📂 ${escapeHtml(
+                                schema.schemaName
+                            )}
+                        </div>
+
+                        <div class="schema-subtitle">
+                            ${tables.length}
+                            ${tables.length === 1
+                                ? "table"
+                                : "tables"}
+                        </div>
+                    </div>
+
+                    <span class="schema-badge">
+                        Schema ${schemaIndex + 1}
+                    </span>
+
+                </div>
+
+
+                ${
+                    tables.length === 0
+
+                    ? `
+                        <div class="empty-table">
+                            No tables found in this schema.
+                        </div>
+                    `
+
+                    : `
+
+                    <div class="table-wrapper">
+
+                        <table class="database-table">
+
+                            <thead>
+                                <tr>
+                                    <th>Table</th>
+                                    <th>Type</th>
+                                    <th>Columns</th>
+                                    <th>Keys</th>
+                                    <th>Entity</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                ${tables.map(table => {
+
+                                    const keyCount =
+                                        (table.primaryKeyCount || 0) +
+                                        (table.foreignKeyCount || 0);
+
+                                    return `
+
+                                        <tr>
+
+                                            <td>
+
+                                                <button
+                                                    type="button"
+                                                    class="table-link"
+                                                    data-schema="${escapeAttribute(schema.schemaName)}"
+                                                    data-table="${escapeAttribute(table.tableName)}"
+                                                >
+
+                                                    <span class="table-icon">
+                                                        📄
+                                                    </span>
+
+                                                    <span>
+                                                        ${escapeHtml(
+                                                            table.tableName
+                                                        )}
+                                                    </span>
+
+                                                </button>
+
+                                            </td>
+
+
+                                            <td>
+                                                <span class="type-badge">
+                                                    ${escapeHtml(
+                                                        table.tableType || "-"
+                                                    )}
+                                                </span>
+                                            </td>
+
+
+                                            <td>
+                                                <span class="number-badge">
+                                                    ${table.columnCount || 0}
+                                                </span>
+                                            </td>
+
+
+                                            <td>
+
+                                                <div class="key-summary">
+
+                                                    ${
+                                                        table.primaryKeyCount > 0
+                                                            ? `<span title="Primary Keys">
+                                                                🔑 ${table.primaryKeyCount}
+                                                              </span>`
+                                                            : ""
+                                                    }
+
+                                                    ${
+                                                        table.foreignKeyCount > 0
+                                                            ? `<span title="Foreign Keys">
+                                                                🔗 ${table.foreignKeyCount}
+                                                              </span>`
+                                                            : ""
+                                                    }
+
+                                                    ${
+                                                        keyCount === 0
+                                                            ? `<span class="muted">None</span>`
+                                                            : ""
+                                                    }
+
+                                                </div>
+
+                                            </td>
+
+
+                                            <td class="entity-name">
+
+                                                ${
+                                                    table.entityName
+                                                        ? escapeHtml(
+                                                            table.entityName
+                                                          )
+                                                        : `<span class="muted">-</span>`
+                                                }
+
+                                            </td>
+
+
+                                            <td class="action-cell">
+
+                                                <button
+                                                    type="button"
+                                                    class="view-button table-link"
+                                                    data-schema="${escapeAttribute(schema.schemaName)}"
+                                                    data-table="${escapeAttribute(table.tableName)}"
+                                                >
+                                                    View
+                                                </button>
+
+                                            </td>
+
+                                        </tr>
+
+                                    `;
+                                }).join("")}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    `
+                }
+
+            </div>
+        `;
+    });
+
+
+    container.innerHTML = html;
+}
+
+
+/*
+ * Show table details
  */
 function showTableDetails(schema, table) {
-
-    console.log("Table clicked:", schema, table);
-
 
     const section =
         document.getElementById(
             "table-details-section"
         );
-
 
     const container =
         document.getElementById(
@@ -183,56 +326,60 @@ function showTableDetails(schema, table) {
         );
 
 
-    section.style.display = "block";
+    section.classList.remove("hidden");
 
 
-    container.innerHTML =
-    `
-        <div class="alert alert-info">
-            Loading table information...
+    container.innerHTML = `
+        <div class="loading-state">
+
+            <div class="spinner-border"></div>
+
+            <div>
+                Loading table information...
+            </div>
+
         </div>
     `;
 
 
-    const params = new URLSearchParams();
+    const params =
+        new URLSearchParams();
 
 
     if (schema) {
-        params.append("schema", schema);
+        params.append(
+            "schema",
+            schema
+        );
     }
 
 
-    params.append("table", table);
+    params.append(
+        "table",
+        table
+    );
 
 
-    const url =
-        `/monitoring/databases/table?${params.toString()}`;
-
-
-    console.log("Calling:", url);
-
-
-    fetch(url)
+    fetch(
+        `/monitoring/databases/table?${params.toString()}`
+    )
 
         .then(response => {
 
             if (!response.ok) {
 
                 throw new Error(
-                    `Failed to load table details. HTTP ${response.status}`
+                    "Failed to load table details"
                 );
-
             }
 
             return response.json();
-
         })
 
         .then(columns => {
 
-            console.log("Table columns:", columns);
-
             renderTableDetails(
+                schema,
                 table,
                 columns
             );
@@ -241,24 +388,28 @@ function showTableDetails(schema, table) {
 
         .catch(error => {
 
-            container.innerHTML =
-            `
+            container.innerHTML = `
                 <div class="alert alert-danger">
-                    Error loading table information:
-                    ${escapeHtml(error.message)}
+
+                    <strong>Error loading table.</strong>
+
+                    <p class="mb-0">
+                        ${escapeHtml(error.message)}
+                    </p>
+
                 </div>
             `;
 
             console.error(error);
-
         });
 }
 
 
 /*
- * Render table column information
+ * Render columns
  */
 function renderTableDetails(
+    schema,
     tableName,
     columns
 ) {
@@ -269,12 +420,27 @@ function renderTableDetails(
         );
 
 
-    if (!columns || columns.length === 0) {
+    if (
+        !columns ||
+        columns.length === 0
+    ) {
 
-        container.innerHTML =
-        `
-            <div class="alert alert-warning">
-                No column information found.
+        container.innerHTML = `
+            <div class="empty-state">
+
+                <div class="empty-icon">
+                    📄
+                </div>
+
+                <h3>
+                    No column information
+                </h3>
+
+                <p>
+                    No columns were found for
+                    <strong>${escapeHtml(tableName)}</strong>.
+                </p>
+
             </div>
         `;
 
@@ -282,103 +448,224 @@ function renderTableDetails(
     }
 
 
-    let html =
-    `
-        <div class="schema-card">
+    const primaryKeyCount =
+        columns.filter(
+            column => column.primaryKey
+        ).length;
 
-            <h3>
-                📄 ${escapeHtml(tableName)}
-            </h3>
 
-            <p>
-                Columns:
-                <b>${columns.length}</b>
-            </p>
+    const foreignKeyCount =
+        columns.filter(
+            column => column.foreignKey
+        ).length;
 
-            <table class="table table-striped table-bordered">
 
-                <thead>
+    let html = `
 
-                    <tr>
-                        <th>Column</th>
-                        <th>Data Type</th>
-                        <th>SQL Type</th>
-                        <th>Size</th>
-                        <th>Decimal Digits</th>
-                        <th>Nullable</th>
-                        <th>Default</th>
-                        <th>Auto Increment</th>
-                        <th>Primary Key</th>
-                        <th>Foreign Key</th>
-                    </tr>
+        <div class="details-card">
 
-                </thead>
+            <div class="details-header">
 
-                <tbody>
+                <div>
+
+                    <div class="breadcrumb-text">
+                        📂 ${escapeHtml(schema || "Default")}
+                        /
+                    </div>
+
+                    <h2>
+                        📄 ${escapeHtml(tableName)}
+                    </h2>
+
+                    <p>
+                        Table column information
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="close-details"
+                    onclick="closeTableDetails()"
+                >
+                    ✕
+                </button>
+
+            </div>
+
+
+            <div class="details-summary">
+
+                <div class="summary-item">
+                    <span class="summary-label">
+                        Columns
+                    </span>
+
+                    <strong>
+                        ${columns.length}
+                    </strong>
+                </div>
+
+
+                <div class="summary-item">
+                    <span class="summary-label">
+                        Primary Keys
+                    </span>
+
+                    <strong>
+                        🔑 ${primaryKeyCount}
+                    </strong>
+                </div>
+
+
+                <div class="summary-item">
+                    <span class="summary-label">
+                        Foreign Keys
+                    </span>
+
+                    <strong>
+                        🔗 ${foreignKeyCount}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="table-wrapper">
+
+                <table class="database-table details-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Column</th>
+                            <th>Data Type</th>
+                            <th>Size</th>
+                            <th>Nullable</th>
+                            <th>Default</th>
+                            <th>Auto Increment</th>
+                            <th>Key</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
     `;
 
 
-    columns.forEach(column => {
+    columns.forEach((column, index) => {
 
-        html +=
-        `
+        let key = "";
+
+        if (column.primaryKey) {
+
+            key += `
+                <span class="key-badge primary">
+                    🔑 Primary Key
+                </span>
+            `;
+        }
+
+
+        if (column.foreignKey) {
+
+            key += `
+                <span class="key-badge foreign">
+                    🔗 Foreign Key
+                </span>
+            `;
+        }
+
+
+        if (!key) {
+            key = `<span class="muted">-</span>`;
+        }
+
+
+        html += `
+
             <tr>
 
-                <td>
-                    ${escapeHtml(column.columnName)}
+                <td class="row-number">
+                    ${index + 1}
                 </td>
 
-                <td>
-                    ${escapeHtml(column.dataType || "-")}
+
+                <td class="column-name">
+                    ${escapeHtml(
+                        column.columnName
+                    )}
                 </td>
 
-                <td>
-                    ${escapeHtml(column.sqlType || "-")}
-                </td>
 
                 <td>
-                    ${column.size ?? "-"}
+                    <span class="data-type">
+                        ${escapeHtml(
+                            column.dataType || "-"
+                        )}
+                    </span>
                 </td>
 
-                <td>
-                    ${column.decimalDigits ?? "-"}
-                </td>
 
                 <td>
-                    ${column.nullable ? "YES" : "NO"}
+                    ${
+                        column.size !== null &&
+                        column.size !== undefined
+                            ? column.size
+                            : "-"
+                    }
                 </td>
 
-                <td>
-                    ${escapeHtml(column.defaultValue || "-")}
-                </td>
 
                 <td>
-                    ${column.autoIncrement ? "YES" : "NO"}
+                    ${
+                        column.nullable
+                            ? `<span class="yes">YES</span>`
+                            : `<span class="no">NO</span>`
+                    }
                 </td>
 
-                <td>
-                    ${column.primaryKey
-                        ? "🔑 YES"
-                        : "NO"}
+
+                <td class="default-value">
+                    ${
+                        column.defaultValue
+                            ? escapeHtml(
+                                column.defaultValue
+                              )
+                            : "-"
+                    }
                 </td>
 
+
                 <td>
-                    ${column.foreignKey
-                        ? "🔗 YES"
-                        : "NO"}
+                    ${
+                        column.autoIncrement
+                            ? `<span class="yes">YES</span>`
+                            : `<span class="no">NO</span>`
+                    }
+                </td>
+
+
+                <td>
+                    ${key}
                 </td>
 
             </tr>
-        `;
 
+        `;
     });
 
 
-    html +=
-    `
-                </tbody>
+    html += `
 
-            </table>
+                    </tbody>
+
+                </table>
+
+            </div>
 
         </div>
     `;
@@ -388,16 +675,38 @@ function renderTableDetails(
 
 
     document
-        .getElementById("table-details-section")
+        .getElementById(
+            "table-details-section"
+        )
         .scrollIntoView({
-            behavior: "smooth"
+            behavior: "smooth",
+            block: "start"
         });
 }
 
 
 /*
- * Prevent HTML injection when displaying
- * database identifiers.
+ * Close details
+ */
+function closeTableDetails() {
+
+    const section =
+        document.getElementById(
+            "table-details-section"
+        );
+
+    section.classList.add("hidden");
+
+    document
+        .getElementById(
+            "table-details-container"
+        )
+        .innerHTML = "";
+}
+
+
+/*
+ * HTML safety
  */
 function escapeHtml(value) {
 
@@ -411,4 +720,10 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+
+function escapeAttribute(value) {
+
+    return escapeHtml(value);
 }
