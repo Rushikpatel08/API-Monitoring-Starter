@@ -1,99 +1,42 @@
 package com.example.api_monitoring_starter.Database.Scanner;
 
-import org.springframework.stereotype.Service;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.metamodel.EntityType;
 
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
-import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.Map;
-
+import java.util.Set;
 
 public class EntityScannerService {
 
+    private final EntityManager entityManager;
 
-    private final Map<String,String> entityMapping =
-            new HashMap<>();
-
-
-    public EntityScannerService() {
-
-        scanEntities();
-
+    public EntityScannerService(EntityManager entityManager) {
+        this.entityManager = entityManager;
     }
 
+    public String getEntityName(String tableName) {
 
+        Set<EntityType<?>> entities =
+                entityManager
+                        .getMetamodel()
+                        .getEntities();
 
-    private void scanEntities() {
+        for (EntityType<?> entity : entities) {
 
+            Class<?> javaType = entity.getJavaType();
 
-        ClassPathScanningCandidateComponentProvider scanner =
-                new ClassPathScanningCandidateComponentProvider(false);
+            jakarta.persistence.Table table =
+                    javaType.getAnnotation(jakarta.persistence.Table.class);
 
+            if (table != null) {
 
-        scanner.addIncludeFilter(
-                new AnnotationTypeFilter(Entity.class)
-        );
+                String entityTableName = table.name();
 
+                if (entityTableName.equalsIgnoreCase(tableName)) {
+                    return entity.getName();
+                }
+            }
+        }
 
-        // Scan application models
-        scanner.findCandidateComponents(
-                        "com.microlearning.api.model"
-                )
-                .forEach(bean -> {
-
-
-                    try {
-
-                        Class<?> clazz =
-                                Class.forName(bean.getBeanClassName());
-
-
-                        Table table =
-                                clazz.getAnnotation(Table.class);
-
-
-                        if(table != null) {
-
-
-                            String tableName =
-                                    table.name().toUpperCase();
-
-
-                            entityMapping.put(
-                                    tableName,
-                                    clazz.getSimpleName()
-                            );
-
-                        }
-
-                    } catch(Exception e) {
-
-                        e.printStackTrace();
-
-                    }
-
-
-                });
-
-
+        return null;
     }
-
-
-
-    public String getEntityName(String tableName){
-
-        return entityMapping.get(
-                tableName.toUpperCase()
-        );
-
-    }
-
-
 }

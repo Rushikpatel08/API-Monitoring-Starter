@@ -23,7 +23,6 @@ public class DatabaseMetadataService {
     private final EntityScannerService entityScannerService;
 
 
-
     public DatabaseMetadataService(
             DataSource dataSource,
             EntityScannerService entityScannerService
@@ -31,7 +30,6 @@ public class DatabaseMetadataService {
         this.dataSource = dataSource;
         this.entityScannerService = entityScannerService;
     }
-
 
 
 
@@ -49,7 +47,6 @@ public class DatabaseMetadataService {
 
 
 
-            // Database information
             database.setDatabaseName(
                     metadata.getDatabaseProductName()
             );
@@ -71,35 +68,76 @@ public class DatabaseMetadataService {
 
 
 
+            boolean mysql =
+                    metadata.getDatabaseProductName()
+                            .equalsIgnoreCase("MySQL");
+
+
+
             List<SchemaDTO> schemas =
                     new ArrayList<>();
 
 
 
-            try(ResultSet schemaResult =
-                        metadata.getSchemas()) {
+            ResultSet schemaResult;
 
+
+            if(mysql){
+
+                // MySQL databases are catalogs
+                schemaResult =
+                        metadata.getCatalogs();
+
+            }
+            else{
+
+                // H2, PostgreSQL etc.
+                schemaResult =
+                        metadata.getSchemas();
+
+            }
+
+
+
+            try(schemaResult){
 
 
                 while(schemaResult.next()) {
 
 
-                    String schemaName =
-                            schemaResult.getString(
-                                    "TABLE_SCHEM"
-                            );
+                    String schemaName;
+
+
+                    if(mysql){
+
+                        schemaName =
+                                schemaResult.getString(
+                                        "TABLE_CAT"
+                                );
+
+                    }
+                    else{
+
+                        schemaName =
+                                schemaResult.getString(
+                                        "TABLE_SCHEM"
+                                );
+
+                    }
+
+
 
                     if(isSystemSchema(schemaName)) {
                         continue;
                     }
-                    /*
-                     * Only include schemas
-                     * having application tables
-                     */
+
+
+
                     List<TableDTO> tables =
                             getTables(
                                     metadata,
-                                    schemaName
+                                    schemaName,
+                                    mysql
                             );
 
 
@@ -131,7 +169,9 @@ public class DatabaseMetadataService {
 
 
 
-            database.setSchemas(schemas);
+            database.setSchemas(
+                    schemas
+            );
 
 
         }
@@ -146,9 +186,11 @@ public class DatabaseMetadataService {
 
 
 
+
     private List<TableDTO> getTables(
             DatabaseMetaData metadata,
-            String schemaName
+            String schemaName,
+            boolean mysql
     ) throws SQLException {
 
 
@@ -157,22 +199,44 @@ public class DatabaseMetadataService {
 
 
 
-        /*
-         * Get supported object types dynamically
-         */
         String[] tableTypes =
                 getSupportedTableTypes(metadata);
 
 
 
-        try(ResultSet result =
+
+        ResultSet result;
+
+
+
+        if(mysql){
+
+
+            result =
+                    metadata.getTables(
+                            schemaName,
+                            null,
+                            "%",
+                            tableTypes
+                    );
+
+        }
+        else{
+
+
+            result =
                     metadata.getTables(
                             null,
                             schemaName,
                             "%",
                             tableTypes
-                    )) {
+                    );
 
+        }
+
+
+
+        try(result){
 
 
             while(result.next()) {
@@ -184,12 +248,15 @@ public class DatabaseMetadataService {
                         );
 
 
+
                 TableDTO table =
                         new TableDTO();
 
 
 
-                table.setTableName(tableName);
+                table.setTableName(
+                        tableName
+                );
 
 
 
@@ -205,7 +272,8 @@ public class DatabaseMetadataService {
                         getColumnCount(
                                 metadata,
                                 schemaName,
-                                tableName
+                                tableName,
+                                mysql
                         )
                 );
 
@@ -215,7 +283,8 @@ public class DatabaseMetadataService {
                         getPrimaryKeyCount(
                                 metadata,
                                 schemaName,
-                                tableName
+                                tableName,
+                                mysql
                         )
                 );
 
@@ -225,7 +294,8 @@ public class DatabaseMetadataService {
                         getForeignKeyCount(
                                 metadata,
                                 schemaName,
-                                tableName
+                                tableName,
+                                mysql
                         )
                 );
 
@@ -233,7 +303,9 @@ public class DatabaseMetadataService {
 
                 table.setEntityName(
                         entityScannerService
-                                .getEntityName(tableName)
+                                .getEntityName(
+                                        tableName
+                                )
                 );
 
 
@@ -256,6 +328,8 @@ public class DatabaseMetadataService {
 
 
 
+
+
     private String[] getSupportedTableTypes(
             DatabaseMetaData metadata
     ) throws SQLException {
@@ -266,22 +340,19 @@ public class DatabaseMetadataService {
 
 
         try(ResultSet rs =
-                    metadata.getTableTypes()) {
+                    metadata.getTableTypes()){
 
 
-
-            while(rs.next()) {
+            while(rs.next()){
 
 
                 String type =
-                        rs.getString("TABLE_TYPE");
+                        rs.getString(
+                                "TABLE_TYPE"
+                        );
 
 
-                /*
-                 * Include all database objects
-                 * except temporary/system objects
-                 */
-                if(type != null) {
+                if(type != null){
 
                     types.add(type);
 
@@ -292,9 +363,13 @@ public class DatabaseMetadataService {
         }
 
 
-        return types.toArray(new String[0]);
+        return types.toArray(
+                new String[0]
+        );
 
     }
+
+
 
 
 
@@ -305,23 +380,49 @@ public class DatabaseMetadataService {
     private int getColumnCount(
             DatabaseMetaData metadata,
             String schema,
-            String table
+            String table,
+            boolean mysql
     ) throws SQLException {
 
 
         int count = 0;
 
 
-        try(ResultSet rs =
+
+        ResultSet rs;
+
+
+
+        if(mysql){
+
+            rs =
+                    metadata.getColumns(
+                            schema,
+                            null,
+                            table,
+                            "%"
+                    );
+
+        }
+        else{
+
+            rs =
                     metadata.getColumns(
                             null,
                             schema,
                             table,
                             "%"
-                    )) {
+                    );
+
+        }
 
 
-            while(rs.next()) {
+
+
+        try(rs){
+
+
+            while(rs.next()){
 
                 count++;
 
@@ -333,6 +434,8 @@ public class DatabaseMetadataService {
         return count;
 
     }
+
+
 
 
 
@@ -343,22 +446,47 @@ public class DatabaseMetadataService {
     private int getPrimaryKeyCount(
             DatabaseMetaData metadata,
             String schema,
-            String table
+            String table,
+            boolean mysql
     ) throws SQLException {
 
 
         int count = 0;
 
 
-        try(ResultSet rs =
+
+        ResultSet rs;
+
+
+
+        if(mysql){
+
+            rs =
+                    metadata.getPrimaryKeys(
+                            schema,
+                            null,
+                            table
+                    );
+
+        }
+        else{
+
+            rs =
                     metadata.getPrimaryKeys(
                             null,
                             schema,
                             table
-                    )) {
+                    );
+
+        }
 
 
-            while(rs.next()) {
+
+
+        try(rs){
+
+
+            while(rs.next()){
 
                 count++;
 
@@ -367,9 +495,11 @@ public class DatabaseMetadataService {
         }
 
 
+
         return count;
 
     }
+
 
 
 
@@ -381,22 +511,49 @@ public class DatabaseMetadataService {
     private int getForeignKeyCount(
             DatabaseMetaData metadata,
             String schema,
-            String table
+            String table,
+            boolean mysql
     ) throws SQLException {
 
 
         int count = 0;
 
 
-        try(ResultSet rs =
+
+        ResultSet rs;
+
+
+
+        if(mysql){
+
+
+            rs =
+                    metadata.getImportedKeys(
+                            schema,
+                            null,
+                            table
+                    );
+
+        }
+        else{
+
+
+            rs =
                     metadata.getImportedKeys(
                             null,
                             schema,
                             table
-                    )) {
+                    );
+
+        }
 
 
-            while(rs.next()) {
+
+
+        try(rs){
+
+
+            while(rs.next()){
 
                 count++;
 
@@ -405,68 +562,43 @@ public class DatabaseMetadataService {
         }
 
 
+
         return count;
 
     }
 
-    private boolean isSystemSchema(String schemaName) {
 
 
-        if(schemaName == null) {
+
+
+
+
+
+
+    private boolean isSystemSchema(
+            String schemaName
+    ) {
+
+
+        if(schemaName == null){
             return true;
         }
+
 
 
         String schema =
                 schemaName.toUpperCase();
 
 
+
         return schema.equals("INFORMATION_SCHEMA")
                 || schema.equals("PG_CATALOG")
-                || schema.equals("SYS")
-                || schema.equals("SYSTEM")
                 || schema.equals("MYSQL")
                 || schema.equals("PERFORMANCE_SCHEMA")
+                || schema.equals("SYS")
+                || schema.equals("SYSTEM")
                 || schema.startsWith("SYS_");
 
     }
-
-
-
-
-
-
-    private boolean isValidSchema(
-            DatabaseMetaData metadata,
-            String schemaName
-    ) throws SQLException {
-
-
-        if(schemaName == null ||
-                schemaName.trim().isEmpty()) {
-
-            return false;
-        }
-
-
-
-        /*
-         * Check whether schema actually contains objects
-         */
-        try(ResultSet tables =
-                    metadata.getTables(
-                            null,
-                            schemaName,
-                            "%",
-                            null
-                    )) {
-
-
-            return tables.next();
-
-        }
-
-    }
-
 
 }
