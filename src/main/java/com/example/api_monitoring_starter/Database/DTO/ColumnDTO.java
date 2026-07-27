@@ -3,7 +3,7 @@ package com.example.api_monitoring_starter.Database.DTO;
 import lombok.Data;
 
 import java.util.List;
-
+//
 @Data
 public class ColumnDTO {
 
