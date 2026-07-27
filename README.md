@@ -71,10 +71,12 @@ The current database visibility support is focused on relational databases. A ke
 
 Planned areas of contribution include:
 
-- adding database adapters for non-relational stores
-- exposing schema or document-collection metadata in the monitoring UI
-- extending the backend scanner and DTOs to support document-based data models
-- improving the database explorer experience for non-relational environments
+- Basic Read Operations for Tables in Database
+- Advanced-level CRUD Operations with Role-Based Access Control
+- Adding database adapters for non-relational stores
+- Improving the database explorer experience for non-relational environments
+- Ability to Export Database Schema and Table Creation
+- Ability to Export Records of the Database 
 
 Contributors interested in this area are welcome to propose designs, implement adapters, and help shape the roadmap.
 
