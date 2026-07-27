@@ -1,9 +1,6 @@
 package com.example.api_monitoring_starter.Database.Service;
 
-import com.example.api_monitoring_starter.Database.DTO.ColumnDTO;
-import com.example.api_monitoring_starter.Database.DTO.DatabaseDTO;
-import com.example.api_monitoring_starter.Database.DTO.SchemaDTO;
-import com.example.api_monitoring_starter.Database.DTO.TableDTO;
+import com.example.api_monitoring_starter.Database.DTO.*;
 import com.example.api_monitoring_starter.Database.Scanner.EntityScannerService;
 
 import org.springframework.stereotype.Service;
@@ -518,6 +515,22 @@ public class DatabaseMetadataService {
                                     normalize(columnName)
                             )
                     );
+                    ColumnValidationDTO info =
+                            entityScannerService.getColumnInfo(
+                                    table,
+                                    columnName
+                            );
+
+                    if (info != null) {
+
+                        column.setNullable(
+                                info.isNullable()
+                        );
+
+                        column.setValidations(
+                                info.getValidations()
+                        );
+                    }
 
                     columns.add(column);
                 }

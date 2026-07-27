@@ -937,3 +937,18 @@ body {
     }
 
 }
+.validation-badge {
+
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 2px;
+
+    border-radius: 12px;
+
+    font-size: 12px;
+
+    background: #eef6ff;
+    color: #2563eb;
+
+    border: 1px solid #bfdbfe;
+}

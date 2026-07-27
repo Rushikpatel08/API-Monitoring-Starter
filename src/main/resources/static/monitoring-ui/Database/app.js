@@ -547,6 +547,7 @@ function renderTableDetails(
                             <th>Default</th>
                             <th>Auto Increment</th>
                             <th>Key</th>
+                            <th>Validations</th>
                         </tr>
 
                     </thead>
@@ -652,7 +653,30 @@ function renderTableDetails(
                 <td>
                     ${key}
                 </td>
+<td>
 
+    ${
+        column.validations &&
+        column.validations.length > 0
+
+        ?
+
+        column.validations
+            .map(validation =>
+                `
+                <span class="validation-badge">
+                    ${escapeHtml(validation)}
+                </span>
+                `
+            )
+            .join("")
+
+        :
+
+        `<span class="muted">-</span>`
+    }
+
+</td>
             </tr>
 
         `;

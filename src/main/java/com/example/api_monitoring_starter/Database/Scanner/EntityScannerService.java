@@ -1,19 +1,29 @@
 package com.example.api_monitoring_starter.Database.Scanner;
 
+import com.example.api_monitoring_starter.Database.DTO.ColumnValidationDTO;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Table;
 import jakarta.persistence.metamodel.EntityType;
 import jakarta.persistence.metamodel.Metamodel;
+import jakarta.persistence.Column;
 
+import jakarta.validation.constraints.*;
+
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
 
 public class EntityScannerService {
 
     private final EntityManagerFactory entityManagerFactory;
 
     private final Map<String, String> entityMappings = new HashMap<>();
+
+    private final Map<String, Map<String, ColumnValidationDTO>> columnMappings =
+            new HashMap<>();
 
     public EntityScannerService(
             EntityManagerFactory entityManagerFactory
@@ -23,6 +33,24 @@ public class EntityScannerService {
         loadEntityMappings();
     }
 
+    public ColumnValidationDTO getColumnInfo(
+            String tableName,
+            String columnName
+    ) {
+
+        Map<String, ColumnValidationDTO> columns =
+                columnMappings.get(
+                        normalize(tableName)
+                );
+
+        if (columns == null) {
+            return null;
+        }
+
+        return columns.get(
+                normalize(columnName)
+        );
+    }
     /**
      * Discover all JPA entities dynamically.
      */
@@ -75,6 +103,90 @@ public class EntityScannerService {
             entityMappings.putIfAbsent(
                     normalize(javaType.getSimpleName()),
                     entityName
+            );
+            Map<String, ColumnValidationDTO> columns = new HashMap<>();
+
+            for (Field field : javaType.getDeclaredFields()) {
+
+                ColumnValidationDTO dto =
+                        new ColumnValidationDTO();
+
+                Column column =
+                        field.getAnnotation(Column.class);
+
+                if (column != null) {
+                    dto.setNullable(column.nullable());
+                }
+
+                List<String> validations =
+                        dto.getValidations();
+
+                if (field.isAnnotationPresent(NotNull.class))
+                    validations.add("@NotNull");
+
+                if (field.isAnnotationPresent(NotBlank.class))
+                    validations.add("@NotBlank");
+
+                if (field.isAnnotationPresent(NotEmpty.class))
+                    validations.add("@NotEmpty");
+
+                if (field.isAnnotationPresent(Email.class))
+                    validations.add("@Email");
+
+                Size size =
+                        field.getAnnotation(Size.class);
+
+                if (size != null) {
+                    validations.add(
+                            "@Size(" +
+                                    size.min() +
+                                    "," +
+                                    size.max() +
+                                    ")"
+                    );
+                }
+
+                Pattern pattern =
+                        field.getAnnotation(Pattern.class);
+
+                if (pattern != null) {
+                    validations.add("@Pattern");
+                }
+
+                Min min =
+                        field.getAnnotation(Min.class);
+
+                if (min != null) {
+                    validations.add("@Min(" + min.value() + ")");
+                }
+
+                Max max =
+                        field.getAnnotation(Max.class);
+
+                if (max != null) {
+                    validations.add("@Max(" + max.value() + ")");
+                }
+
+                String columnName = field.getName();
+
+                if (column != null && !column.name().isBlank()) {
+                    columnName = column.name();
+                }
+
+                columns.put(
+                        normalize(columnName),
+                        dto
+                );
+            }
+
+            String tableKey =
+                    table != null && !table.name().isBlank()
+                            ? normalize(table.name())
+                            : normalize(entityName);
+
+            columnMappings.put(
+                    tableKey,
+                    columns
             );
         }
     }
