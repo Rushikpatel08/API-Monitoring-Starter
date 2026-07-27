@@ -76,7 +76,8 @@ Planned areas of contribution include:
 - Adding database adapters for non-relational stores
 - Improving the database explorer experience for non-relational environments
 - Ability to Export Database Schema and Table Creation
-- Ability to Export Records of the Database 
+- Ability to Export Records of the Database
+- Database-related metadata such as Pole Size, Current Connections, Table Storage Size, etc.
 
 Contributors interested in this area are welcome to propose designs, implement adapters, and help shape the roadmap.
 
