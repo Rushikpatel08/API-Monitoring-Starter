@@ -55,6 +55,7 @@ After the app starts, open:
 - `http://localhost:8080/monitoring/database` (database explorer, when available)
 
 ![alt text](image-4.png)
+
 ![alt text](image-5.png)
 
 ## Development notes for contributors
