@@ -61,6 +61,45 @@ public class DatabaseMetadataService {
                     metadata.getURL()
             );
 
+            database.setUsername(
+                    metadata.getUserName()
+            );
+
+            database.setCatalog(
+                    connection.getCatalog()
+            );
+
+            database.setCurrentSchema(
+                    connection.getSchema()
+            );
+
+            database.setDatabaseProduct(
+                    metadata.getDatabaseProductName()
+            );
+
+            database.setDriverVersion(
+                    metadata.getDriverVersion()
+            );
+
+            database.setJdbcVersion(
+                    metadata.getJDBCMajorVersion()
+                            + "."
+                            + metadata.getJDBCMinorVersion()
+            );
+
+            database.setAutoCommit(
+                    connection.getAutoCommit()
+            );
+
+            database.setReadOnly(
+                    connection.isReadOnly()
+            );
+
+            database.setTransactionIsolation(
+                    getIsolationLevel(
+                            connection.getTransactionIsolation()
+                    )
+            );
             // -----------------------------------------
             // SCAN TABLES DYNAMICALLY
             // -----------------------------------------
@@ -69,6 +108,25 @@ public class DatabaseMetadataService {
                     scanSchemas(metadata);
 
             database.setSchemas(schemas);
+            int tableCount = 0;
+            int viewCount = 0;
+
+            for (SchemaDTO schema : schemas) {
+
+                for (TableDTO table : schema.getTables()) {
+
+                    if ("VIEW".equalsIgnoreCase(table.getTableType())) {
+                        viewCount++;
+                    } else {
+                        tableCount++;
+                    }
+                }
+            }
+
+            database.setSchemaCount(schemas.size());
+            database.setTableCount(tableCount);
+            database.setViewCount(viewCount);
+            loadDatabaseStorage(connection, database);
         }
 
         return database;
@@ -80,107 +138,263 @@ public class DatabaseMetadataService {
      * No MySQL/PostgreSQL/Oracle/SQL Server
      * specific branching is required here.
      */
+    private String getIsolationLevel(int level) {
+
+        switch (level) {
+
+            case Connection.TRANSACTION_NONE:
+                return "NONE";
+
+            case Connection.TRANSACTION_READ_UNCOMMITTED:
+                return "READ_UNCOMMITTED";
+
+            case Connection.TRANSACTION_READ_COMMITTED:
+                return "READ_COMMITTED";
+
+            case Connection.TRANSACTION_REPEATABLE_READ:
+                return "REPEATABLE_READ";
+
+            case Connection.TRANSACTION_SERIALIZABLE:
+                return "SERIALIZABLE";
+
+            default:
+                return "UNKNOWN";
+        }
+    }
+    private void loadDatabaseStorage(
+            Connection connection,
+            DatabaseDTO database
+    ) {
+
+        try {
+
+            String db =
+                    connection.getMetaData()
+                            .getDatabaseProductName()
+                            .toLowerCase();
+
+            if (db.contains("postgresql")) {
+
+                try (var ps = connection.prepareStatement(
+                        "SELECT pg_database_size(current_database())"
+                )) {
+
+                    var rs = ps.executeQuery();
+
+                    if (rs.next()) {
+
+                        database.setTotalSizeBytes(
+                                rs.getLong(1)
+                        );
+                    }
+                }
+            }
+
+            else if (db.contains("mysql")) {
+
+                try (var ps = connection.prepareStatement(
+                        """
+                        SELECT SUM(data_length + index_length)
+                        FROM information_schema.tables
+                        WHERE table_schema = DATABASE()
+                        """
+                )) {
+
+                    var rs = ps.executeQuery();
+
+                    if (rs.next()) {
+
+                        database.setTotalSizeBytes(
+                                rs.getLong(1)
+                        );
+                    }
+                }
+            }
+
+            else if (db.contains("h2")) {
+
+                /*
+                 * H2 in-memory database does not have
+                 * physical storage.
+                 */
+                database.setTotalSizeBytes(0L);
+            }
+
+        }
+
+        catch (Exception ignored) {
+
+        }
+    }
     private List<SchemaDTO> scanSchemas(
             DatabaseMetaData metadata
     ) throws SQLException {
 
-        /*
-         * LinkedHashMap preserves the order returned
-         * by the database driver.
-         *
-         * Key:
-         * catalog + schema
-         */
+
         Map<String, SchemaDTO> schemaMap =
                 new LinkedHashMap<>();
+
 
         String[] tableTypes =
                 getSupportedTableTypes(metadata);
 
-        try (ResultSet result =
-                     metadata.getTables(
-                             null,
-                             null,
-                             "%",
-                             tableTypes
-                     )) {
 
-            while (result.next()) {
 
-                String catalog =
-                        result.getString("TABLE_CAT");
+        try(Connection connection =
+                    dataSource.getConnection()){
 
-                String schemaName =
-                        result.getString("TABLE_SCHEM");
 
-                String tableName =
-                        result.getString("TABLE_NAME");
+            String currentDatabase =
+                    connection.getCatalog();
 
-                String tableType =
-                        result.getString("TABLE_TYPE");
 
-                if (tableName == null) {
-                    continue;
-                }
 
-                /*
-                 * Skip system objects.
-                 */
-                if (isSystemObject(
-                        catalog,
-                        schemaName,
-                        tableName
-                )) {
-                    continue;
-                }
+            try(ResultSet result =
+                        metadata.getTables(
+                                null,
+                                null,
+                                "%",
+                                tableTypes
+                        )){
 
-                String schemaKey =
-                        createSchemaKey(
-                                catalog,
-                                schemaName
+
+                while(result.next()){
+
+
+                    String catalog =
+                            result.getString("TABLE_CAT");
+
+
+                    String schemaName =
+                            result.getString("TABLE_SCHEM");
+
+
+                    String tableName =
+                            result.getString("TABLE_NAME");
+
+
+                    String tableType =
+                            result.getString("TABLE_TYPE");
+
+
+
+                    if(tableName == null){
+                        continue;
+                    }
+
+
+
+                    /*
+                     * MySQL uses catalog as database name.
+                     * PostgreSQL uses schema.
+                     */
+                    String displaySchema;
+
+
+
+                    if(schemaName != null &&
+                            !schemaName.isBlank()){
+
+
+                        displaySchema =
+                                schemaName;
+
+                    }
+                    else if(catalog != null &&
+                            !catalog.isBlank()){
+
+
+                        displaySchema =
+                                catalog;
+
+                    }
+                    else{
+
+                        displaySchema =
+                                "DEFAULT";
+                    }
+
+
+
+
+                    /*
+                     * Ignore system databases
+                     */
+                    if(isSystemObject(
+                            catalog,
+                            schemaName,
+                            tableName
+                    )){
+                        continue;
+                    }
+
+
+
+
+                    String schemaKey =
+                            normalize(displaySchema);
+
+
+
+                    SchemaDTO schema =
+                            schemaMap.get(schemaKey);
+
+
+
+                    if(schema == null){
+
+
+                        schema =
+                                new SchemaDTO();
+
+
+                        schema.setSchemaName(
+                                displaySchema
                         );
 
-                SchemaDTO schema =
-                        schemaMap.get(schemaKey);
 
-                if (schema == null) {
+                        schema.setTables(
+                                new ArrayList<>()
+                        );
 
-                    schema =
-                            new SchemaDTO();
 
-                    schema.setSchemaName(
-                            determineDisplaySchemaName(
+                        schemaMap.put(
+                                schemaKey,
+                                schema
+                        );
+
+                    }
+
+
+
+
+
+                    TableDTO table =
+                            buildTable(
+                                    metadata,
                                     catalog,
-                                    schemaName
-                            )
-                    );
+                                    schemaName,
+                                    tableName,
+                                    tableType
+                            );
 
-                    schema.setTables(
-                            new ArrayList<>()
-                    );
 
-                    schemaMap.put(
-                            schemaKey,
-                            schema
-                    );
+
+                    schema.getTables()
+                            .add(table);
+
                 }
 
-                TableDTO table =
-                        buildTable(
-                                metadata,
-                                catalog,
-                                schemaName,
-                                tableName,
-                                tableType
-                        );
-
-                schema.getTables().add(table);
             }
+
         }
+
+
 
         return new ArrayList<>(
                 schemaMap.values()
         );
+
     }
 
     /**
@@ -404,24 +618,33 @@ public class DatabaseMetadataService {
 
     private boolean isSystemName(
             String value
-    ) {
+    ){
 
-        if (value == null) {
+        if(value == null){
             return false;
         }
 
-        String name =
-                value.trim().toUpperCase();
 
-        return name.equals("INFORMATION_SCHEMA")
-                || name.equals("PG_CATALOG")
-                || name.equals("PERFORMANCE_SCHEMA")
-                || name.equals("SYS")
-                || name.equals("SYSTEM")
-                || name.equals("SYSCAT")
-                || name.equals("SYSIBM")
-                || name.equals("MYSQL")
-                || name.startsWith("SYS_");
+        String name =
+                value.trim()
+                        .toLowerCase();
+
+
+
+        return name.equals("information_schema")
+                ||
+                name.equals("performance_schema")
+                ||
+                name.equals("mysql")
+                ||
+                name.equals("sys")
+                ||
+                name.equals("pg_catalog")
+                ||
+                name.equals("system")
+                ||
+                name.startsWith("sys_");
+
     }
     public List<ColumnDTO> getTableDetails(
             String catalog,

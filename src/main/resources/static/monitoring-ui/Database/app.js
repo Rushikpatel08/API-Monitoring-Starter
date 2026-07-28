@@ -76,15 +76,41 @@ function renderDatabaseSummary(database) {
     document.getElementById("database-driver").textContent =
         database.driverName || "-";
 
+    document.getElementById("driver-version").textContent =
+        database.driverVersion || "-";
+
+    document.getElementById("jdbc-version").textContent =
+        database.jdbcVersion || "-";
+
+    document.getElementById("database-username").textContent =
+        database.username || "-";
+
     document.getElementById("database-url").textContent =
         database.url || "-";
 
-    document.getElementById("schema-count").textContent =
-        database.schemas
-            ? database.schemas.length
-            : 0;
-}
+    document.getElementById("database-catalog").textContent =
+        database.catalog || "-";
 
+
+
+    document.getElementById("schema-count").textContent =
+        database.schemaCount ?? (database.schemas ? database.schemas.length : 0);
+
+    document.getElementById("table-count").textContent =
+        database.tableCount ?? "-";
+
+    document.getElementById("view-count").textContent =
+        database.viewCount ?? "-";
+
+    document.getElementById("database-size").textContent =
+        formatBytes(database.totalSizeBytes);
+
+
+    document.getElementById("read-only").textContent =
+        database.readOnly ? "Yes" : "No";
+
+
+}
 
 /*
  * Render schemas and tables
@@ -750,4 +776,23 @@ function escapeHtml(value) {
 function escapeAttribute(value) {
 
     return escapeHtml(value);
+}
+function formatBytes(bytes) {
+
+    if (bytes === null || bytes === undefined)
+        return "-";
+
+    if (bytes === 0)
+        return "In-Memory";
+
+    const units = ["Bytes", "KB", "MB", "GB", "TB"];
+
+    let index = 0;
+
+    while (bytes >= 1024 && index < units.length - 1) {
+        bytes /= 1024;
+        index++;
+    }
+
+    return bytes.toFixed(2) + " " + units[index];
 }
