@@ -1,6 +1,7 @@
 package com.example.api_monitoring_starter.Database.Service;
 
 import com.example.api_monitoring_starter.Database.DTO.*;
+import com.example.api_monitoring_starter.Database.Provider.DatabaseStorageProvider;
 import com.example.api_monitoring_starter.Database.Scanner.EntityScannerService;
 
 import org.springframework.stereotype.Service;
@@ -21,14 +22,21 @@ import java.util.Set;
 public class DatabaseMetadataService {
 
     private final DataSource dataSource;
+
     private final EntityScannerService entityScannerService;
+
+    private final List<DatabaseStorageProvider> storageProviders;
 
     public DatabaseMetadataService(
             DataSource dataSource,
-            EntityScannerService entityScannerService
+            EntityScannerService entityScannerService,
+            List<DatabaseStorageProvider> storageProviders
     ) {
-        this.dataSource = dataSource;
-        this.entityScannerService = entityScannerService;
+
+        this.dataSource=dataSource;
+        this.entityScannerService=entityScannerService;
+        this.storageProviders=storageProviders;
+
     }
 
     public DatabaseDTO scanDatabase() throws Exception {
@@ -166,65 +174,66 @@ public class DatabaseMetadataService {
             DatabaseDTO database
     ) {
 
+
         try {
 
-            String db =
+
+            String databaseName =
                     connection.getMetaData()
-                            .getDatabaseProductName()
-                            .toLowerCase();
+                            .getDatabaseProductName();
 
-            if (db.contains("postgresql")) {
 
-                try (var ps = connection.prepareStatement(
-                        "SELECT pg_database_size(current_database())"
-                )) {
+            System.out.println(
+                    "Detected Database: "
+                            + databaseName
+            );
 
-                    var rs = ps.executeQuery();
 
-                    if (rs.next()) {
 
-                        database.setTotalSizeBytes(
-                                rs.getLong(1)
-                        );
-                    }
-                }
+            DatabaseStorageProvider provider =
+                    storageProviders.stream()
+                            .filter(p ->
+                                    p.supports(databaseName)
+                            )
+                            .findFirst()
+                            .orElse(null);
+
+
+
+            if(provider == null){
+
+                System.out.println(
+                        "No storage provider found"
+                );
+
+                return;
             }
 
-            else if (db.contains("mysql")) {
 
-                try (var ps = connection.prepareStatement(
-                        """
-                        SELECT SUM(data_length + index_length)
-                        FROM information_schema.tables
-                        WHERE table_schema = DATABASE()
-                        """
-                )) {
 
-                    var rs = ps.executeQuery();
+            Long size =
+                    provider.getDatabaseSize(connection);
 
-                    if (rs.next()) {
 
-                        database.setTotalSizeBytes(
-                                rs.getLong(1)
-                        );
-                    }
-                }
-            }
 
-            else if (db.contains("h2")) {
+            System.out.println(
+                    "Database Size Bytes: "
+                            + size
+            );
 
-                /*
-                 * H2 in-memory database does not have
-                 * physical storage.
-                 */
-                database.setTotalSizeBytes(0L);
-            }
+
+
+            database.setTotalSizeBytes(size);
+
+
+
+        }
+        catch(Exception e){
+
+            e.printStackTrace();
 
         }
 
-        catch (Exception ignored) {
-
-        }
     }
     private List<SchemaDTO> scanSchemas(
             DatabaseMetaData metadata
