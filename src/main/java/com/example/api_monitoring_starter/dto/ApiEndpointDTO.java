@@ -55,7 +55,8 @@ public class ApiEndpointDTO {
             ApiRequestDTO request,
             ApiAuthDTO authentication,
             String summary,
-            String description
+            String description,
+            String  apiType
     ){
 
         this.id=id;
@@ -68,6 +69,7 @@ public class ApiEndpointDTO {
         this.authentication=authentication;
         this.summary=summary;
         this.description=description;
+        this.apiType=apiType;
 
     }
     public String getApiType() {

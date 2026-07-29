@@ -55,7 +55,8 @@ class ExportServiceTest {
                 new ApiRequestDTO("application/json", Map.of("name", "John"), Map.of()),
                 null,
                 "Get students",
-                "Returns students"
+                "Returns students",
+                "APPLICATION"
         );
     }
 }

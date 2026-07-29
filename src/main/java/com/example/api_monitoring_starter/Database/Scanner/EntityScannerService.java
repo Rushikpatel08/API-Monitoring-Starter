@@ -1,231 +1,352 @@
 package com.example.api_monitoring_starter.Database.Scanner;
 
+
 import com.example.api_monitoring_starter.Database.DTO.ColumnValidationDTO;
+
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
+
 import jakarta.persistence.metamodel.EntityType;
 import jakarta.persistence.metamodel.Metamodel;
-import jakarta.persistence.Column;
 
 import jakarta.validation.constraints.*;
 
 import java.lang.reflect.Field;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
 
 
+
+@Lazy
 public class EntityScannerService {
+
 
     private final EntityManagerFactory entityManagerFactory;
 
-    private final Map<String, String> entityMappings = new HashMap<>();
 
-    private final Map<String, Map<String, ColumnValidationDTO>> columnMappings =
+    private final Map<String,String> entityMappings =
             new HashMap<>();
+
+
+    private final Map<String,Map<String,ColumnValidationDTO>> columnMappings =
+            new HashMap<>();
+
+
+    private boolean loaded = false;
+
+
 
     public EntityScannerService(
             EntityManagerFactory entityManagerFactory
-    ) {
-        this.entityManagerFactory = entityManagerFactory;
+    ){
 
-        loadEntityMappings();
+        this.entityManagerFactory =
+                entityManagerFactory;
+
     }
 
-    public ColumnValidationDTO getColumnInfo(
-            String tableName,
-            String columnName
-    ) {
 
-        Map<String, ColumnValidationDTO> columns =
-                columnMappings.get(
-                        normalize(tableName)
-                );
 
-        if (columns == null) {
-            return null;
+    private synchronized void initialize(){
+
+        if(loaded){
+            return;
         }
 
-        return columns.get(
-                normalize(columnName)
-        );
+
+        loadEntityMappings();
+
+        loaded = true;
+
     }
-    /**
-     * Discover all JPA entities dynamically.
-     */
-    private void loadEntityMappings() {
+
+
+
+
+    private void loadEntityMappings(){
+
 
         Metamodel metamodel =
-                entityManagerFactory.getMetamodel();
+                entityManagerFactory
+                        .getMetamodel();
 
-        Set<EntityType<?>> entities =
-                metamodel.getEntities();
 
-        for (EntityType<?> entity : entities) {
 
-            Class<?> javaType =
+        for(EntityType<?> entity :
+                metamodel.getEntities()){
+
+
+            Class<?> clazz =
                     entity.getJavaType();
+
+
 
             String entityName =
                     entity.getName();
 
+
+
             Table table =
-                    javaType.getAnnotation(Table.class);
+                    clazz.getAnnotation(
+                            Table.class
+                    );
 
-            if (table != null && !table.name().isBlank()) {
 
-                String tableName =
-                        table.name();
 
-                entityMappings.put(
-                        normalize(tableName),
-                        entityName
-                );
+            String tableName =
+                    table != null &&
+                            !table.name().isBlank()
+                            ?
+                            table.name()
+                            :
+                            entityName;
 
-            }
+
 
             /*
-             * Also support entities without @Table.
-             *
-             * Example:
-             *
-             * @Entity
-             * public class Mobile {}
-             *
-             * JPA defaults the table name from the entity mapping.
+             * Store different possible names
              */
-            entityMappings.putIfAbsent(
+
+            entityMappings.put(
+                    normalize(tableName),
+                    entityName
+            );
+
+
+            entityMappings.put(
+                    normalize(clazz.getSimpleName()),
+                    entityName
+            );
+
+
+            entityMappings.put(
                     normalize(entityName),
                     entityName
             );
 
-            entityMappings.putIfAbsent(
-                    normalize(javaType.getSimpleName()),
-                    entityName
-            );
-            Map<String, ColumnValidationDTO> columns = new HashMap<>();
 
-            for (Field field : javaType.getDeclaredFields()) {
+
+            Map<String,ColumnValidationDTO> columns =
+                    new HashMap<>();
+
+
+
+            for(Field field :
+                    clazz.getDeclaredFields()){
+
 
                 ColumnValidationDTO dto =
                         new ColumnValidationDTO();
 
-                Column column =
-                        field.getAnnotation(Column.class);
 
-                if (column != null) {
-                    dto.setNullable(column.nullable());
+
+                Column column =
+                        field.getAnnotation(
+                                Column.class
+                        );
+
+
+
+                if(column != null){
+
+                    dto.setNullable(
+                            column.nullable()
+                    );
+
                 }
+
+
 
                 List<String> validations =
                         dto.getValidations();
 
-                if (field.isAnnotationPresent(NotNull.class))
+
+
+                if(field.isAnnotationPresent(NotNull.class))
                     validations.add("@NotNull");
 
-                if (field.isAnnotationPresent(NotBlank.class))
+
+                if(field.isAnnotationPresent(NotBlank.class))
                     validations.add("@NotBlank");
 
-                if (field.isAnnotationPresent(NotEmpty.class))
+
+                if(field.isAnnotationPresent(NotEmpty.class))
                     validations.add("@NotEmpty");
 
-                if (field.isAnnotationPresent(Email.class))
+
+                if(field.isAnnotationPresent(Email.class))
                     validations.add("@Email");
 
-                Size size =
-                        field.getAnnotation(Size.class);
 
-                if (size != null) {
+
+                Size size =
+                        field.getAnnotation(
+                                Size.class
+                        );
+
+
+                if(size != null){
+
                     validations.add(
-                            "@Size(" +
-                                    size.min() +
-                                    "," +
-                                    size.max() +
+                            "@Size("+
+                                    size.min()+
+                                    ","+
+                                    size.max()+
                                     ")"
                     );
+
                 }
 
-                Pattern pattern =
-                        field.getAnnotation(Pattern.class);
 
-                if (pattern != null) {
-                    validations.add("@Pattern");
-                }
 
                 Min min =
-                        field.getAnnotation(Min.class);
+                        field.getAnnotation(
+                                Min.class
+                        );
 
-                if (min != null) {
-                    validations.add("@Min(" + min.value() + ")");
+
+                if(min != null){
+
+                    validations.add(
+                            "@Min("+
+                                    min.value()+
+                                    ")"
+                    );
+
                 }
+
+
 
                 Max max =
-                        field.getAnnotation(Max.class);
+                        field.getAnnotation(
+                                Max.class
+                        );
 
-                if (max != null) {
-                    validations.add("@Max(" + max.value() + ")");
+
+                if(max != null){
+
+                    validations.add(
+                            "@Max("+
+                                    max.value()+
+                                    ")"
+                    );
+
                 }
 
-                String columnName = field.getName();
 
-                if (column != null && !column.name().isBlank()) {
-                    columnName = column.name();
-                }
+
+                String fieldName =
+                        field.getName();
+
+
+
+                /*
+                 * Store Java field name
+                 */
 
                 columns.put(
-                        normalize(columnName),
+                        normalize(fieldName),
                         dto
                 );
+
+
+
+                /*
+                 * Store database column name
+                 */
+
+                if(column != null &&
+                        !column.name().isBlank()){
+
+
+                    columns.put(
+                            normalize(column.name()),
+                            dto
+                    );
+
+                }
+
             }
 
-            String tableKey =
-                    table != null && !table.name().isBlank()
-                            ? normalize(table.name())
-                            : normalize(entityName);
+
 
             columnMappings.put(
-                    tableKey,
+                    normalize(tableName),
                     columns
             );
+
+
         }
+
     }
 
-    /**
-     * Find JPA entity associated with a database table.
-     */
-    public String getEntityName(String tableName) {
 
-        if (tableName == null) {
-            return null;
-        }
+
+
+    public String getEntityName(
+            String tableName
+    ){
+
+        initialize();
+
 
         return entityMappings.get(
                 normalize(tableName)
         );
+
     }
 
-    /**
-     * Normalize database identifiers so that:
-     *
-     * MOBILE
-     * mobile
-     * Mobile
-     *
-     * can all match.
-     */
-    private String normalize(String value) {
 
-        if (value == null) {
+
+
+    public ColumnValidationDTO getColumnInfo(
+            String table,
+            String column
+    ){
+
+        initialize();
+
+
+        Map<String,ColumnValidationDTO> cols =
+                columnMappings.get(
+                        normalize(table)
+                );
+
+
+        if(cols == null){
+            return null;
+        }
+
+
+        return cols.get(
+                normalize(column)
+        );
+
+    }
+
+
+
+
+    private String normalize(
+            String value
+    ){
+
+        if(value == null){
             return "";
         }
 
+
         return value
                 .trim()
-                .replace("\"", "")
-                .replace("`", "")
-                .replace("[", "")
-                .replace("]", "")
+                .replace("\"","")
+                .replace("`","")
+                .replace("[","")
+                .replace("]","")
                 .toLowerCase();
+
     }
+
 }

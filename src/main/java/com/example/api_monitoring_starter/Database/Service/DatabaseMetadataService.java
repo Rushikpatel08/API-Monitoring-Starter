@@ -1,31 +1,44 @@
 package com.example.api_monitoring_starter.Database.Service;
 
-import com.example.api_monitoring_starter.Database.DTO.*;
+import com.example.api_monitoring_starter.Database.DTO.ColumnDTO;
+import com.example.api_monitoring_starter.Database.DTO.ColumnValidationDTO;
+import com.example.api_monitoring_starter.Database.DTO.DatabaseDTO;
+import com.example.api_monitoring_starter.Database.DTO.SchemaDTO;
+import com.example.api_monitoring_starter.Database.DTO.TableDTO;
 import com.example.api_monitoring_starter.Database.Provider.DatabaseStorageProvider;
 import com.example.api_monitoring_starter.Database.Scanner.EntityScannerService;
 
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.sql.Types;
-import java.util.HashSet;
 import java.util.Set;
+
+
 @Service
 public class DatabaseMetadataService {
 
+
     private final DataSource dataSource;
+
 
     private final EntityScannerService entityScannerService;
 
+
     private final List<DatabaseStorageProvider> storageProviders;
+
+
 
     public DatabaseMetadataService(
             DataSource dataSource,
@@ -33,61 +46,59 @@ public class DatabaseMetadataService {
             List<DatabaseStorageProvider> storageProviders
     ) {
 
-        this.dataSource=dataSource;
-        this.entityScannerService=entityScannerService;
-        this.storageProviders=storageProviders;
+        this.dataSource = dataSource;
+        this.entityScannerService = entityScannerService;
+        this.storageProviders = storageProviders;
 
     }
 
+
+
     public DatabaseDTO scanDatabase() throws Exception {
+
 
         DatabaseDTO database = new DatabaseDTO();
 
-        try (Connection connection =
-                     dataSource.getConnection()) {
+
+
+        try(Connection connection =
+                    dataSource.getConnection()) {
+
+
 
             DatabaseMetaData metadata =
                     connection.getMetaData();
 
-            // -----------------------------------------
-            // DATABASE INFORMATION
-            // -----------------------------------------
+
+
+            /*
+             * Database information
+             */
 
             database.setDatabaseName(
                     metadata.getDatabaseProductName()
             );
 
+
             database.setDatabaseVersion(
                     metadata.getDatabaseProductVersion()
             );
 
-            database.setDriverName(
-                    metadata.getDriverName()
-            );
-
-            database.setUrl(
-                    metadata.getURL()
-            );
-
-            database.setUsername(
-                    metadata.getUserName()
-            );
-
-            database.setCatalog(
-                    connection.getCatalog()
-            );
-
-            database.setCurrentSchema(
-                    connection.getSchema()
-            );
 
             database.setDatabaseProduct(
                     metadata.getDatabaseProductName()
             );
 
+
+            database.setDriverName(
+                    metadata.getDriverName()
+            );
+
+
             database.setDriverVersion(
                     metadata.getDriverVersion()
             );
+
 
             database.setJdbcVersion(
                     metadata.getJDBCMajorVersion()
@@ -95,84 +106,173 @@ public class DatabaseMetadataService {
                             + metadata.getJDBCMinorVersion()
             );
 
+
+            database.setUrl(
+                    metadata.getURL()
+            );
+
+
+            database.setUsername(
+                    metadata.getUserName()
+            );
+
+
+            database.setCatalog(
+                    connection.getCatalog()
+            );
+
+
+            database.setCurrentSchema(
+                    connection.getSchema()
+            );
+
+
             database.setAutoCommit(
                     connection.getAutoCommit()
             );
 
+
             database.setReadOnly(
                     connection.isReadOnly()
             );
+
 
             database.setTransactionIsolation(
                     getIsolationLevel(
                             connection.getTransactionIsolation()
                     )
             );
-            // -----------------------------------------
-            // SCAN TABLES DYNAMICALLY
-            // -----------------------------------------
+
+
+
+            /*
+             * Scan schemas/tables
+             */
 
             List<SchemaDTO> schemas =
                     scanSchemas(metadata);
 
-            database.setSchemas(schemas);
+
+
+            database.setSchemas(
+                    schemas
+            );
+
+
+
             int tableCount = 0;
             int viewCount = 0;
 
-            for (SchemaDTO schema : schemas) {
 
-                for (TableDTO table : schema.getTables()) {
 
-                    if ("VIEW".equalsIgnoreCase(table.getTableType())) {
+            for(SchemaDTO schema : schemas){
+
+
+                for(TableDTO table :
+                        schema.getTables()){
+
+
+
+                    if("VIEW".equalsIgnoreCase(
+                            table.getTableType()
+                    )){
+
+
                         viewCount++;
-                    } else {
-                        tableCount++;
+
+
                     }
+                    else {
+
+
+                        tableCount++;
+
+
+                    }
+
                 }
+
             }
 
-            database.setSchemaCount(schemas.size());
-            database.setTableCount(tableCount);
-            database.setViewCount(viewCount);
-            loadDatabaseStorage(connection, database);
+
+
+            database.setSchemaCount(
+                    schemas.size()
+            );
+
+
+            database.setTableCount(
+                    tableCount
+            );
+
+
+            database.setViewCount(
+                    viewCount
+            );
+
+
+
+            loadDatabaseStorage(
+                    connection,
+                    database
+            );
+
+
         }
+
 
         return database;
+
     }
 
-    /**
-     * Dynamically scans catalogs/schemas/tables.
-     *
-     * No MySQL/PostgreSQL/Oracle/SQL Server
-     * specific branching is required here.
-     */
-    private String getIsolationLevel(int level) {
 
-        switch (level) {
 
-            case Connection.TRANSACTION_NONE:
-                return "NONE";
 
-            case Connection.TRANSACTION_READ_UNCOMMITTED:
-                return "READ_UNCOMMITTED";
 
-            case Connection.TRANSACTION_READ_COMMITTED:
-                return "READ_COMMITTED";
+    private String getIsolationLevel(
+            int level
+    ){
 
-            case Connection.TRANSACTION_REPEATABLE_READ:
-                return "REPEATABLE_READ";
 
-            case Connection.TRANSACTION_SERIALIZABLE:
-                return "SERIALIZABLE";
+        return switch(level){
 
-            default:
-                return "UNKNOWN";
-        }
+
+            case Connection.TRANSACTION_NONE ->
+                    "NONE";
+
+
+            case Connection.TRANSACTION_READ_UNCOMMITTED ->
+                    "READ_UNCOMMITTED";
+
+
+            case Connection.TRANSACTION_READ_COMMITTED ->
+                    "READ_COMMITTED";
+
+
+            case Connection.TRANSACTION_REPEATABLE_READ ->
+                    "REPEATABLE_READ";
+
+
+            case Connection.TRANSACTION_SERIALIZABLE ->
+                    "SERIALIZABLE";
+
+
+            default ->
+                    "UNKNOWN";
+
+        };
+
+
     }
+
+
+
+
+
     private void loadDatabaseStorage(
             Connection connection,
             DatabaseDTO database
-    ) {
+    ){
 
 
         try {
@@ -183,17 +283,11 @@ public class DatabaseMetadataService {
                             .getDatabaseProductName();
 
 
-            System.out.println(
-                    "Detected Database: "
-                            + databaseName
-            );
-
-
 
             DatabaseStorageProvider provider =
                     storageProviders.stream()
-                            .filter(p ->
-                                    p.supports(databaseName)
+                            .filter(
+                                    p -> p.supports(databaseName)
                             )
                             .findFirst()
                             .orElse(null);
@@ -202,29 +296,22 @@ public class DatabaseMetadataService {
 
             if(provider == null){
 
-                System.out.println(
-                        "No storage provider found"
-                );
-
                 return;
+
             }
 
 
 
             Long size =
-                    provider.getDatabaseSize(connection);
+                    provider.getDatabaseSize(
+                            connection
+                    );
 
 
 
-            System.out.println(
-                    "Database Size Bytes: "
-                            + size
+            database.setTotalSizeBytes(
+                    size
             );
-
-
-
-            database.setTotalSizeBytes(size);
-
 
 
         }
@@ -233,6 +320,7 @@ public class DatabaseMetadataService {
             e.printStackTrace();
 
         }
+
 
     }
     private List<SchemaDTO> scanSchemas(
@@ -249,155 +337,128 @@ public class DatabaseMetadataService {
 
 
 
-        try(Connection connection =
-                    dataSource.getConnection()){
-
-
-            String currentDatabase =
-                    connection.getCatalog();
-
-
-
-            try(ResultSet result =
-                        metadata.getTables(
-                                null,
-                                null,
-                                "%",
-                                tableTypes
-                        )){
-
-
-                while(result.next()){
-
-
-                    String catalog =
-                            result.getString("TABLE_CAT");
-
-
-                    String schemaName =
-                            result.getString("TABLE_SCHEM");
-
-
-                    String tableName =
-                            result.getString("TABLE_NAME");
-
-
-                    String tableType =
-                            result.getString("TABLE_TYPE");
+        try(ResultSet rs =
+                    metadata.getTables(
+                            null,
+                            null,
+                            "%",
+                            tableTypes
+                    )) {
 
 
 
-                    if(tableName == null){
-                        continue;
-                    }
+            while(rs.next()) {
 
 
 
-                    /*
-                     * MySQL uses catalog as database name.
-                     * PostgreSQL uses schema.
-                     */
-                    String displaySchema;
+                String catalog =
+                        rs.getString("TABLE_CAT");
+
+
+                String schemaName =
+                        rs.getString("TABLE_SCHEM");
+
+
+                String tableName =
+                        rs.getString("TABLE_NAME");
+
+
+                String tableType =
+                        rs.getString("TABLE_TYPE");
 
 
 
-                    if(schemaName != null &&
-                            !schemaName.isBlank()){
-
-
-                        displaySchema =
-                                schemaName;
-
-                    }
-                    else if(catalog != null &&
-                            !catalog.isBlank()){
-
-
-                        displaySchema =
-                                catalog;
-
-                    }
-                    else{
-
-                        displaySchema =
-                                "DEFAULT";
-                    }
+                if(tableName == null){
+                    continue;
+                }
 
 
 
+                /*
+                 * Some databases:
+                 *
+                 * PostgreSQL -> schema
+                 * MySQL -> catalog(database)
+                 * SQL Server -> schema
+                 */
 
-                    /*
-                     * Ignore system databases
-                     */
-                    if(isSystemObject(
-                            catalog,
-                            schemaName,
-                            tableName
-                    )){
-                        continue;
-                    }
-
-
-
-
-                    String schemaKey =
-                            normalize(displaySchema);
-
-
-
-                    SchemaDTO schema =
-                            schemaMap.get(schemaKey);
-
-
-
-                    if(schema == null){
-
-
-                        schema =
-                                new SchemaDTO();
-
-
-                        schema.setSchemaName(
-                                displaySchema
+                String displaySchema =
+                        determineDisplaySchemaName(
+                                catalog,
+                                schemaName
                         );
 
 
-                        schema.setTables(
-                                new ArrayList<>()
-                        );
 
+                /*
+                 * Remove internal database objects
+                 */
 
-                        schemaMap.put(
-                                schemaKey,
-                                schema
-                        );
+                if(isSystemObject(
+                        catalog,
+                        schemaName,
+                        tableName
+                )) {
 
-                    }
-
-
-
-
-
-                    TableDTO table =
-                            buildTable(
-                                    metadata,
-                                    catalog,
-                                    schemaName,
-                                    tableName,
-                                    tableType
-                            );
-
-
-
-                    schema.getTables()
-                            .add(table);
+                    continue;
 
                 }
 
+
+
+                String schemaKey =
+                        normalize(displaySchema);
+
+
+
+                SchemaDTO schema =
+                        schemaMap.get(schemaKey);
+
+
+
+                if(schema == null){
+
+
+                    schema = new SchemaDTO();
+
+
+                    schema.setSchemaName(
+                            displaySchema
+                    );
+
+
+                    schema.setTables(
+                            new ArrayList<>()
+                    );
+
+
+                    schemaMap.put(
+                            schemaKey,
+                            schema
+                    );
+
+                }
+
+
+
+                TableDTO table =
+                        buildTable(
+                                metadata,
+                                catalog,
+                                schemaName,
+                                tableName,
+                                tableType
+                        );
+
+
+
+                schema.getTables()
+                        .add(table);
+
             }
 
-        }
 
+        }
 
 
         return new ArrayList<>(
@@ -406,9 +467,12 @@ public class DatabaseMetadataService {
 
     }
 
-    /**
-     * Builds table information using standard JDBC metadata.
-     */
+
+
+
+
+
+
     private TableDTO buildTable(
             DatabaseMetaData metadata,
             String catalog,
@@ -417,16 +481,22 @@ public class DatabaseMetadataService {
             String tableType
     ) throws SQLException {
 
+
         TableDTO table =
                 new TableDTO();
+
+
 
         table.setTableName(
                 tableName
         );
 
+
         table.setTableType(
                 tableType
         );
+
+
 
         table.setColumnCount(
                 getColumnCount(
@@ -437,6 +507,8 @@ public class DatabaseMetadataService {
                 )
         );
 
+
+
         table.setPrimaryKeyCount(
                 getPrimaryKeyCount(
                         metadata,
@@ -445,6 +517,8 @@ public class DatabaseMetadataService {
                         tableName
                 )
         );
+
+
 
         table.setForeignKeyCount(
                 getForeignKeyCount(
@@ -455,49 +529,80 @@ public class DatabaseMetadataService {
                 )
         );
 
+
+
+        /*
+         * Connect database table
+         * with JPA Entity
+         */
+
         table.setEntityName(
                 entityScannerService
-                        .getEntityName(tableName)
+                        .getEntityName(
+                                tableName
+                        )
         );
 
+
+
         return table;
+
     }
 
-    /**
-     * Get every table type supported by the database driver.
-     *
-     * This prevents hardcoding:
-     *
-     * TABLE
-     * VIEW
-     * BASE TABLE
-     * etc.
-     */
+
+
+
+
+
+
     private String[] getSupportedTableTypes(
             DatabaseMetaData metadata
     ) throws SQLException {
 
+
         List<String> types =
                 new ArrayList<>();
 
-        try (ResultSet rs =
-                     metadata.getTableTypes()) {
 
-            while (rs.next()) {
+
+        try(ResultSet rs =
+                    metadata.getTableTypes()) {
+
+
+
+            while(rs.next()) {
+
 
                 String type =
-                        rs.getString("TABLE_TYPE");
+                        rs.getString(
+                                "TABLE_TYPE"
+                        );
 
-                if (type != null) {
+
+                if(type != null){
+
                     types.add(type);
+
                 }
+
             }
+
         }
+
+
 
         return types.toArray(
                 new String[0]
         );
+
     }
+
+
+
+
+
+
+
 
     private int getColumnCount(
             DatabaseMetaData metadata,
@@ -506,23 +611,40 @@ public class DatabaseMetadataService {
             String table
     ) throws SQLException {
 
+
         int count = 0;
 
-        try (ResultSet rs =
-                     metadata.getColumns(
-                             catalog,
-                             schema,
-                             table,
-                             "%"
-                     )) {
 
-            while (rs.next()) {
+
+        try(ResultSet rs =
+                    metadata.getColumns(
+                            catalog,
+                            schema,
+                            table,
+                            "%"
+                    )) {
+
+
+
+            while(rs.next()){
+
                 count++;
+
             }
+
         }
 
+
+
         return count;
+
     }
+
+
+
+
+
+
 
     private int getPrimaryKeyCount(
             DatabaseMetaData metadata,
@@ -531,22 +653,39 @@ public class DatabaseMetadataService {
             String table
     ) throws SQLException {
 
+
         int count = 0;
 
-        try (ResultSet rs =
-                     metadata.getPrimaryKeys(
-                             catalog,
-                             schema,
-                             table
-                     )) {
 
-            while (rs.next()) {
+
+        try(ResultSet rs =
+                    metadata.getPrimaryKeys(
+                            catalog,
+                            schema,
+                            table
+                    )) {
+
+
+
+            while(rs.next()){
+
                 count++;
+
             }
+
         }
 
+
+
         return count;
+
     }
+
+
+
+
+
+
 
     private int getForeignKeyCount(
             DatabaseMetaData metadata,
@@ -555,104 +694,67 @@ public class DatabaseMetadataService {
             String table
     ) throws SQLException {
 
+
         int count = 0;
 
-        try (ResultSet rs =
-                     metadata.getImportedKeys(
-                             catalog,
-                             schema,
-                             table
-                     )) {
 
-            while (rs.next()) {
+
+        try(ResultSet rs =
+                    metadata.getImportedKeys(
+                            catalog,
+                            schema,
+                            table
+                    )) {
+
+
+
+            while(rs.next()){
+
                 count++;
+
             }
+
         }
 
+
+
         return count;
+
     }
 
-    /**
-     * Creates a unique schema key.
-     *
-     * Some databases use catalog as the database,
-     * while others use schema.
-     */
-    private String createSchemaKey(
-            String catalog,
-            String schema
-    ) {
 
-        return normalize(catalog)
-                + "::"
-                + normalize(schema);
-    }
 
-    /**
-     * Determines what should be displayed in the UI.
-     */
+
+
+
+
     private String determineDisplaySchemaName(
             String catalog,
             String schema
-    ) {
-
-        if (schema != null && !schema.isBlank()) {
-            return schema;
-        }
-
-        if (catalog != null && !catalog.isBlank()) {
-            return catalog;
-        }
-
-        return "DEFAULT";
-    }
-
-    /**
-     * Filters common system objects.
-     *
-     * This does not determine how the database is scanned.
-     * It only prevents internal database objects from
-     * cluttering the Database Explorer.
-     */
-    private boolean isSystemObject(
-            String catalog,
-            String schema,
-            String table
-    ) {
-
-        return isSystemName(catalog)
-                || isSystemName(schema)
-                || isSystemName(table);
-    }
-
-    private boolean isSystemName(
-            String value
     ){
 
-        if(value == null){
-            return false;
+
+        if(schema != null &&
+                !schema.isBlank()) {
+
+
+            return schema;
+
         }
 
 
-        String name =
-                value.trim()
-                        .toLowerCase();
+
+        if(catalog != null &&
+                !catalog.isBlank()) {
+
+
+            return catalog;
+
+        }
 
 
 
-        return name.equals("information_schema")
-                ||
-                name.equals("performance_schema")
-                ||
-                name.equals("mysql")
-                ||
-                name.equals("sys")
-                ||
-                name.equals("pg_catalog")
-                ||
-                name.equals("system")
-                ||
-                name.startsWith("sys_");
+        return "DEFAULT";
 
     }
     public List<ColumnDTO> getTableDetails(
@@ -661,12 +763,21 @@ public class DatabaseMetadataService {
             String table
     ) throws SQLException {
 
-        List<ColumnDTO> columns = new ArrayList<>();
 
-        try (Connection connection = dataSource.getConnection()) {
+        List<ColumnDTO> columns =
+                new ArrayList<>();
+
+
+
+        try(Connection connection =
+                    dataSource.getConnection()) {
+
+
 
             DatabaseMetaData metadata =
                     connection.getMetaData();
+
+
 
             Set<String> primaryKeys =
                     getPrimaryKeyColumns(
@@ -676,6 +787,8 @@ public class DatabaseMetadataService {
                             table
                     );
 
+
+
             Set<String> foreignKeys =
                     getForeignKeyColumns(
                             metadata,
@@ -684,57 +797,101 @@ public class DatabaseMetadataService {
                             table
                     );
 
-            try (ResultSet rs =
-                         metadata.getColumns(
-                                 catalog,
-                                 schema,
-                                 table,
-                                 "%"
-                         )) {
 
-                while (rs.next()) {
+
+            try(ResultSet rs =
+                        metadata.getColumns(
+                                catalog,
+                                schema,
+                                table,
+                                "%"
+                        )) {
+
+
+
+                while(rs.next()) {
+
+
 
                     ColumnDTO column =
                             new ColumnDTO();
 
-                    String columnName =
-                            rs.getString("COLUMN_NAME");
 
-                    column.setColumnName(columnName);
+
+                    String columnName =
+                            rs.getString(
+                                    "COLUMN_NAME"
+                            );
+
+
+
+                    column.setColumnName(
+                            columnName
+                    );
+
+
 
                     column.setDataType(
-                            rs.getString("TYPE_NAME")
+                            rs.getString(
+                                    "TYPE_NAME"
+                            )
                     );
+
+
 
                     column.setSqlType(
                             getSqlTypeName(
-                                    rs.getInt("DATA_TYPE")
+                                    rs.getInt(
+                                            "DATA_TYPE"
+                                    )
                             )
                     );
 
+
+
                     column.setSize(
-                            rs.getInt("COLUMN_SIZE")
+                            rs.getInt(
+                                    "COLUMN_SIZE"
+                            )
                     );
 
+
+
                     column.setDecimalDigits(
-                            rs.getInt("DECIMAL_DIGITS")
+                            rs.getInt(
+                                    "DECIMAL_DIGITS"
+                            )
                     );
+
+
 
                     column.setNullable(
                             "YES".equalsIgnoreCase(
-                                    rs.getString("IS_NULLABLE")
+                                    rs.getString(
+                                            "IS_NULLABLE"
+                                    )
                             )
                     );
 
+
+
                     column.setDefaultValue(
-                            rs.getString("COLUMN_DEF")
+                            rs.getString(
+                                    "COLUMN_DEF"
+                            )
                     );
+
+
 
                     column.setAutoIncrement(
                             "YES".equalsIgnoreCase(
-                                    rs.getString("IS_AUTOINCREMENT")
+                                    rs.getString(
+                                            "IS_AUTOINCREMENT"
+                                    )
                             )
                     );
+
+
 
                     column.setPrimaryKey(
                             primaryKeys.contains(
@@ -742,121 +899,189 @@ public class DatabaseMetadataService {
                             )
                     );
 
+
+
                     column.setForeignKey(
                             foreignKeys.contains(
                                     normalize(columnName)
                             )
                     );
-                    ColumnValidationDTO info =
-                            entityScannerService.getColumnInfo(
-                                    table,
-                                    columnName
-                            );
 
-                    if (info != null) {
+
+
+                    /*
+                     * Add JPA validation information
+                     */
+
+                    ColumnValidationDTO validation =
+                            entityScannerService
+                                    .getColumnInfo(
+                                            table,
+                                            columnName
+                                    );
+
+
+
+                    if(validation != null){
+
 
                         column.setNullable(
-                                info.isNullable()
+                                validation.isNullable()
                         );
+
 
                         column.setValidations(
-                                info.getValidations()
+                                validation.getValidations()
                         );
+
                     }
 
+
+
                     columns.add(column);
+
+
                 }
+
+
             }
+
+
         }
+
+
 
         return columns;
+
     }
-    private String getSqlTypeName(int sqlType) {
 
-        switch (sqlType) {
 
-            case Types.BIGINT:
-                return "BIGINT";
 
-            case Types.INTEGER:
-                return "INTEGER";
 
-            case Types.SMALLINT:
-                return "SMALLINT";
 
-            case Types.TINYINT:
-                return "TINYINT";
 
-            case Types.VARCHAR:
-                return "VARCHAR";
 
-            case Types.CHAR:
-                return "CHAR";
 
-            case Types.LONGVARCHAR:
-                return "LONGVARCHAR";
+    private String getSqlTypeName(
+            int sqlType
+    ){
 
-            case Types.DATE:
-                return "DATE";
 
-            case Types.TIME:
-                return "TIME";
+        return switch(sqlType){
 
-            case Types.TIMESTAMP:
-                return "TIMESTAMP";
 
-            case Types.TIMESTAMP_WITH_TIMEZONE:
-                return "TIMESTAMP WITH TIME ZONE";
+            case Types.BIGINT ->
+                    "BIGINT";
 
-            case Types.BOOLEAN:
-                return "BOOLEAN";
 
-            case Types.DECIMAL:
-                return "DECIMAL";
+            case Types.INTEGER ->
+                    "INTEGER";
 
-            case Types.NUMERIC:
-                return "NUMERIC";
 
-            case Types.DOUBLE:
-                return "DOUBLE";
+            case Types.SMALLINT ->
+                    "SMALLINT";
 
-            case Types.FLOAT:
-                return "FLOAT";
 
-            case Types.REAL:
-                return "REAL";
+            case Types.TINYINT ->
+                    "TINYINT";
 
-            case Types.BINARY:
-                return "BINARY";
 
-            case Types.VARBINARY:
-                return "VARBINARY";
+            case Types.VARCHAR ->
+                    "VARCHAR";
 
-            case Types.LONGVARBINARY:
-                return "LONGVARBINARY";
 
-            case Types.BLOB:
-                return "BLOB";
+            case Types.CHAR ->
+                    "CHAR";
 
-            case Types.CLOB:
-                return "CLOB";
 
-            case Types.LONGNVARCHAR:
-                return "LONGNVARCHAR";
+            case Types.LONGVARCHAR ->
+                    "LONGVARCHAR";
 
-            case Types.NVARCHAR:
-                return "NVARCHAR";
 
-            case Types.NCHAR:
-                return "NCHAR";
+            case Types.DATE ->
+                    "DATE";
 
-            case Types.SQLXML:
-                return "SQLXML";
 
-            default:
-                return "UNKNOWN";
-        }
+            case Types.TIME ->
+                    "TIME";
+
+
+            case Types.TIMESTAMP ->
+                    "TIMESTAMP";
+
+
+            case Types.TIMESTAMP_WITH_TIMEZONE ->
+                    "TIMESTAMP_WITH_TIMEZONE";
+
+
+            case Types.BOOLEAN ->
+                    "BOOLEAN";
+
+
+            case Types.DECIMAL ->
+                    "DECIMAL";
+
+
+            case Types.NUMERIC ->
+                    "NUMERIC";
+
+
+            case Types.DOUBLE ->
+                    "DOUBLE";
+
+
+            case Types.FLOAT ->
+                    "FLOAT";
+
+
+            case Types.REAL ->
+                    "REAL";
+
+
+            case Types.BINARY ->
+                    "BINARY";
+
+
+            case Types.VARBINARY ->
+                    "VARBINARY";
+
+
+            case Types.BLOB ->
+                    "BLOB";
+
+
+            case Types.CLOB ->
+                    "CLOB";
+
+
+            case Types.NVARCHAR ->
+                    "NVARCHAR";
+
+
+            case Types.NCHAR ->
+                    "NCHAR";
+
+
+            case Types.SQLXML ->
+                    "SQLXML";
+
+
+            default ->
+                    "UNKNOWN";
+
+        };
+
+
     }
+
+
+
+
+
+
+
+
+
     private Set<String> getPrimaryKeyColumns(
             DatabaseMetaData metadata,
             String catalog,
@@ -864,30 +1089,57 @@ public class DatabaseMetadataService {
             String table
     ) throws SQLException {
 
-        Set<String> columns = new HashSet<>();
 
-        try (ResultSet rs =
-                     metadata.getPrimaryKeys(
-                             catalog,
-                             schema,
-                             table
-                     )) {
 
-            while (rs.next()) {
+        Set<String> columns =
+                new HashSet<>();
+
+
+
+        try(ResultSet rs =
+                    metadata.getPrimaryKeys(
+                            catalog,
+                            schema,
+                            table
+                    )) {
+
+
+
+            while(rs.next()) {
+
 
                 String column =
-                        rs.getString("COLUMN_NAME");
+                        rs.getString(
+                                "COLUMN_NAME"
+                        );
 
-                if (column != null) {
+
+                if(column != null){
+
                     columns.add(
                             normalize(column)
                     );
+
                 }
+
             }
+
+
         }
 
+
+
         return columns;
+
     }
+
+
+
+
+
+
+
+
     private Set<String> getForeignKeyColumns(
             DatabaseMetaData metadata,
             String catalog,
@@ -895,43 +1147,160 @@ public class DatabaseMetadataService {
             String table
     ) throws SQLException {
 
-        Set<String> columns = new HashSet<>();
 
-        try (ResultSet rs =
-                     metadata.getImportedKeys(
-                             catalog,
-                             schema,
-                             table
-                     )) {
 
-            while (rs.next()) {
+        Set<String> columns =
+                new HashSet<>();
+
+
+
+        try(ResultSet rs =
+                    metadata.getImportedKeys(
+                            catalog,
+                            schema,
+                            table
+                    )) {
+
+
+
+            while(rs.next()) {
+
 
                 String column =
-                        rs.getString("FKCOLUMN_NAME");
+                        rs.getString(
+                                "FKCOLUMN_NAME"
+                        );
 
-                if (column != null) {
+
+                if(column != null){
+
+
                     columns.add(
                             normalize(column)
                     );
+
+
                 }
+
+
             }
+
+
         }
+
+
 
         return columns;
+
     }
+
+
+
+
+
+
+
+
+    private boolean isSystemObject(
+            String catalog,
+            String schema,
+            String table
+    ){
+
+
+        return isSystemName(catalog)
+                ||
+                isSystemName(schema)
+                ||
+                isSystemName(table);
+
+    }
+
+
+
+
+
+
+
+
+    private boolean isSystemName(
+            String value
+    ){
+
+
+        if(value == null){
+
+            return false;
+
+        }
+
+
+
+        String name =
+                value.trim()
+                        .toLowerCase();
+
+
+
+        return name.equals(
+                "information_schema"
+        )
+                ||
+                name.equals(
+                        "performance_schema"
+                )
+                ||
+                name.equals(
+                        "mysql"
+                )
+                ||
+                name.equals(
+                        "sys"
+                )
+                ||
+                name.equals(
+                        "pg_catalog"
+                )
+                ||
+                name.equals(
+                        "system"
+                )
+                ||
+                name.startsWith(
+                        "sys_"
+                );
+
+    }
+
+
+
+
+
+
+
+
     private String normalize(
             String value
-    ) {
+    ){
 
-        if (value == null) {
+
+        if(value == null){
+
             return "";
+
         }
+
+
 
         return value
                 .trim()
-                .replace("\"", "")
-                .replace("`", "")
-                .replace("[", "]")
+                .replace("\"","")
+                .replace("`","")
+                .replace("[","")
+                .replace("]","")
                 .toLowerCase();
+
     }
+
+
 }

@@ -1,6 +1,7 @@
 package com.example.api_monitoring_starter.autoconfigure;
 
-
+import com.example.api_monitoring_starter.Application.Controller.ApplicationMonitoringController;
+import com.example.api_monitoring_starter.Application.Service.ApplicationMonitoringService;
 import com.example.api_monitoring_starter.Database.Controller.DatabaseController;
 import com.example.api_monitoring_starter.Database.Provider.*;
 import com.example.api_monitoring_starter.Database.Scanner.EntityScannerService;
@@ -21,28 +22,33 @@ import com.example.api_monitoring_starter.scanner.ApiScanner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManagerFactory;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 
+import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 
+import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-
 import javax.sql.DataSource;
-
+import org.springframework.beans.factory.ObjectProvider;
 import java.util.List;
 
 
 
 @AutoConfiguration
 @AutoConfigureAfter(HibernateJpaAutoConfiguration.class)
+@ConditionalOnProperty(name = "api.monitoring.enabled", havingValue = "true", matchIfMissing = true)
 public class MonitoringAutoConfiguration {
 
 
@@ -166,7 +172,6 @@ public class MonitoringAutoConfiguration {
 
 
 
-
     // =========================================================
     // DATABASE EXPLORER
     // =========================================================
@@ -176,6 +181,7 @@ public class MonitoringAutoConfiguration {
     @Bean
     @ConditionalOnClass(EntityManagerFactory.class)
     @ConditionalOnBean(EntityManagerFactory.class)
+    @ConditionalOnProperty(name = "api.monitoring.database.enabled", havingValue = "true", matchIfMissing = true)
     public EntityScannerService entityScannerService(
             EntityManagerFactory entityManagerFactory
     ) {
@@ -188,13 +194,13 @@ public class MonitoringAutoConfiguration {
 
 
 
-
     // =========================================================
     // DATABASE STORAGE PROVIDERS
     // =========================================================
 
 
     @Bean
+    @ConditionalOnProperty(name = "api.monitoring.database.enabled", havingValue = "true", matchIfMissing = true)
     public MySQLStorageProvider mySQLStorageProvider(){
 
         return new MySQLStorageProvider();
@@ -204,6 +210,7 @@ public class MonitoringAutoConfiguration {
 
 
     @Bean
+    @ConditionalOnProperty(name = "api.monitoring.database.enabled", havingValue = "true", matchIfMissing = true)
     public PostgreSQLStorageProvider postgreSQLStorageProvider(){
 
         return new PostgreSQLStorageProvider();
@@ -213,6 +220,7 @@ public class MonitoringAutoConfiguration {
 
 
     @Bean
+    @ConditionalOnProperty(name = "api.monitoring.database.enabled", havingValue = "true", matchIfMissing = true)
     public OracleStorageProvider oracleStorageProvider(){
 
         return new OracleStorageProvider();
@@ -222,6 +230,7 @@ public class MonitoringAutoConfiguration {
 
 
     @Bean
+    @ConditionalOnProperty(name = "api.monitoring.database.enabled", havingValue = "true", matchIfMissing = true)
     public SQLServerStorageProvider sqlServerStorageProvider(){
 
         return new SQLServerStorageProvider();
@@ -231,6 +240,7 @@ public class MonitoringAutoConfiguration {
 
 
     @Bean
+    @ConditionalOnProperty(name = "api.monitoring.database.enabled", havingValue = "true", matchIfMissing = true)
     public H2StorageProvider h2StorageProvider(){
 
         return new H2StorageProvider();
@@ -240,9 +250,9 @@ public class MonitoringAutoConfiguration {
 
 
 
-
     @Bean
     @ConditionalOnBean(EntityScannerService.class)
+    @ConditionalOnProperty(name = "api.monitoring.database.enabled", havingValue = "true", matchIfMissing = true)
     public DatabaseMetadataService databaseMetadataService(
             DataSource dataSource,
             EntityScannerService entityScannerService,
@@ -264,11 +274,48 @@ public class MonitoringAutoConfiguration {
     }
 
 
+    @Bean
+    @ConditionalOnProperty(
+            name = "api.monitoring.application.enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
+    public ApplicationMonitoringService applicationMonitoringService(
 
+            Environment environment,
+            ApplicationContext applicationContext,
+            ObjectProvider<HealthEndpoint> healthEndpoint,
+            DataSource dataSource,
+            MeterRegistry meterRegistry
 
+    ) {
+
+        return new ApplicationMonitoringService(
+
+                environment,
+                applicationContext,
+                healthEndpoint,
+                dataSource,
+                meterRegistry
+
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "api.monitoring.application.enabled", havingValue = "true", matchIfMissing = true)
+    public ApplicationMonitoringController applicationMonitoringController(
+
+            ApplicationMonitoringService service
+
+    ){
+
+        return new ApplicationMonitoringController(service);
+
+    }
 
     @Bean
     @ConditionalOnBean(DatabaseMetadataService.class)
+    @ConditionalOnProperty(name = "api.monitoring.database.enabled", havingValue = "true", matchIfMissing = true)
     public DatabaseController databaseController(
             DatabaseMetadataService databaseMetadataService
     ) {
