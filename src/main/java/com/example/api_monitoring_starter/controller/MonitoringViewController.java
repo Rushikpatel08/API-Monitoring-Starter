@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 
-
+//controller for monitoring UI views
 @Controller
 @RequestMapping("/monitoring")
 public class MonitoringViewController {
