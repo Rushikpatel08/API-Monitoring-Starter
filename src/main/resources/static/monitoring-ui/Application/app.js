@@ -1024,3 +1024,52 @@ function renderEnvironmentProperties(environment) {
             })
             .join("");
 }
+// =========================================================
+// FORMAT NUMBER
+// =========================================================
+
+function formatNumber(value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        isNaN(value)
+    ) {
+        return "-";
+    }
+
+    return Number(value).toLocaleString();
+}
+
+
+// =========================================================
+// CALCULATE HTTP ERROR RATE
+// =========================================================
+
+function calculateHttpErrorRate(
+    requests,
+    errors
+) {
+
+    if (
+        requests === null ||
+        requests === undefined ||
+        isNaN(requests) ||
+        Number(requests) <= 0
+    ) {
+        return "-";
+    }
+
+    if (
+        errors === null ||
+        errors === undefined ||
+        isNaN(errors)
+    ) {
+        return "-";
+    }
+
+    const rate =
+        (Number(errors) / Number(requests)) * 100;
+
+    return rate.toFixed(2) + "%";
+}
