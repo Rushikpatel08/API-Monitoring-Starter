@@ -45,5 +45,12 @@ public class MonitoringViewController {
 
     }
 
+    @GetMapping("/application-test")
+    public String applicationDashboardTest(){
+
+        return "forward:/monitoring-ui/Application/index-test.html";
+
+    }
+
 
 }
