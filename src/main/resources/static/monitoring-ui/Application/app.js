@@ -1,83 +1,48 @@
 document.addEventListener("DOMContentLoaded", () => {
-
     loadApplication();
-
     // Start live log stream
     loadLogs();
-
     // Refresh application information every 5 seconds
     setInterval(loadApplication, 5000);
-
     // Log filter
     document
         .getElementById("log-level-filter")
         .addEventListener("change", filterLogs);
-
     // Clear logs
     document
         .getElementById("clear-logs")
         .addEventListener("click", clearLogs);
-
 });
-
-
 // =========================================================
 // APPLICATION INFORMATION
 // =========================================================
-
 function loadApplication() {
-
     fetch("/monitoring/applications/info")
-
         .then(response => {
-
             if (!response.ok) {
-                throw new Error(
-                    "Application information request failed: "
-                    + response.status
-                );
+                throw new Error("Application information request failed: "+ response.status);
             }
-
             return response.json();
-
         })
-
         .then(data => {
-
             updateApplicationInfo(data);
-
             updateLastUpdated();
-
             setLiveStatus(true);
 
         })
-
         .catch(error => {
-
-            console.error(
-                "Unable to load application information:",
-                error
-            );
-
+            console.error("Unable to load application information:",error);
             setLiveStatus(false);
-
         });
-
 }
-
-
 // =========================================================
 // UPDATE APPLICATION INFORMATION
 // =========================================================
-
 function updateApplicationInfo(data) {
-
     // =====================================================
     // STATUS
     // =====================================================
-
-    const status =
-        String(data.status || "UNKNOWN").toUpperCase();
+    const status =String(data.status || "UNKNOWN").toUpperCase();
 
     document.getElementById("status").innerHTML =
         status === "UP"
@@ -89,9 +54,7 @@ function updateApplicationInfo(data) {
             ? "Application is healthy"
             : "Application health requires attention";
 
-    document.getElementById("health-status-badge").innerHTML =
-        escapeHtml(status);
-
+    document.getElementById("health-status-badge").innerHTML = escapeHtml(status);
 
     // =====================================================
     // APPLICATION
