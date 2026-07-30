@@ -23,7 +23,7 @@ public class MonitoringViewController {
     @GetMapping("/ui")
     public String dashboard(){
 
-        return "redirect:/monitoring-ui/API-List/index.html";
+        return "forward:/monitoring-ui/API-List/index.html";
 
     }
 
@@ -32,7 +32,7 @@ public class MonitoringViewController {
     @GetMapping("/database")
     public String databaseDashboard(){
 
-        return "redirect:/monitoring-ui/Database/index.html";
+        return "forward:/monitoring-ui/Database/index.html";
 
     }
 
@@ -41,7 +41,7 @@ public class MonitoringViewController {
     @GetMapping("/application")
     public String applicationDashboard(){
 
-        return "redirect:/monitoring-ui/Application/index.html";
+        return "forward:/monitoring-ui/Application/index.html";
 
     }
 
