@@ -1,5 +1,10 @@
 package com.monitoring.api_monitoring_starter.sbom.model;
+import java.util.ArrayList;
+import java.util.List;
 
+import com.monitoring.api_monitoring_starter.sbom.model.LicenseInfo;
+import com.monitoring.api_monitoring_starter.sbom.model.SupplierInfo;
+import com.monitoring.api_monitoring_starter.sbom.model.ExternalReference;
 public class DependencyInfo {
 
     private String group;
@@ -7,7 +12,13 @@ public class DependencyInfo {
     private String version;
     private String file;
     private String hash;
+    private SupplierInfo supplier;
 
+    private List<LicenseInfo> licenses =
+            new ArrayList<>();
+
+    private List<ExternalReference> externalReferences =
+            new ArrayList<>();
     public DependencyInfo() {
     }
 
@@ -25,6 +36,33 @@ public class DependencyInfo {
         this.hash = hash;
     }
 
+    public SupplierInfo getSupplier() {
+        return supplier;
+    }
+
+    public void setSupplier(SupplierInfo supplier) {
+        this.supplier = supplier;
+    }
+
+
+    public List<LicenseInfo> getLicenses() {
+        return licenses;
+    }
+
+    public void setLicenses(List<LicenseInfo> licenses) {
+        this.licenses = licenses;
+    }
+
+
+    public List<ExternalReference> getExternalReferences() {
+        return externalReferences;
+    }
+
+    public void setExternalReferences(
+            List<ExternalReference> externalReferences) {
+
+        this.externalReferences = externalReferences;
+    }
     public String getGroup() {
         return group;
     }

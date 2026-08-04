@@ -3,7 +3,6 @@ package com.monitoring.api_monitoring_starter.sbom.service;
 
 import org.springframework.stereotype.Service;
 
-
 import java.io.File;
 import java.nio.file.Files;
 import java.security.MessageDigest;
@@ -14,13 +13,17 @@ import java.security.MessageDigest;
 public class HashGeneratorService {
 
 
-
-    public String generate(
-            File file
-    ){
+    public String generate(File file) {
 
 
-        try{
+        try {
+
+
+            if(file == null || !file.exists()) {
+
+                return null;
+
+            }
 
 
             MessageDigest digest =
@@ -29,18 +32,14 @@ public class HashGeneratorService {
                     );
 
 
-
             byte[] content =
                     Files.readAllBytes(
                             file.toPath()
                     );
 
 
-
             byte[] hash =
-                    digest.digest(
-                            content
-                    );
+                    digest.digest(content);
 
 
 
@@ -48,9 +47,7 @@ public class HashGeneratorService {
                     new StringBuilder();
 
 
-
-            for(byte b : hash){
-
+            for(byte b : hash) {
 
                 result.append(
                         String.format(
@@ -68,12 +65,11 @@ public class HashGeneratorService {
 
         }catch(Exception e){
 
-            throw new RuntimeException(e);
+            return null;
 
         }
 
 
     }
-
 
 }

@@ -6,7 +6,7 @@ import com.monitoring.api_monitoring_starter.Database.Controller.DatabaseControl
 import com.monitoring.api_monitoring_starter.Database.Provider.*;
 import com.monitoring.api_monitoring_starter.Database.Scanner.EntityScannerService;
 import com.monitoring.api_monitoring_starter.Database.Service.DatabaseMetadataService;
-
+import com.monitoring.api_monitoring_starter.sbom.model.DependencyInfo;
 import com.monitoring.api_monitoring_starter.Service.ApiRegistryService;
 import com.monitoring.api_monitoring_starter.Service.OpenApiExportService;
 
@@ -19,7 +19,7 @@ import com.monitoring.api_monitoring_starter.exporter.InsomniaExportService;
 import com.monitoring.api_monitoring_starter.exporter.PostmanExportService;
 
 import com.monitoring.api_monitoring_starter.sbom.controller.SbomController;
-import com.monitoring.api_monitoring_starter.sbom.service.SbomService;
+import com.monitoring.api_monitoring_starter.sbom.service.*;
 import com.monitoring.api_monitoring_starter.scanner.ApiScanner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,9 +48,6 @@ import javax.sql.DataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import java.util.List;
 import java.util.Optional;
-
-import com.monitoring.api_monitoring_starter.sbom.service.DependencyScannerService;
-import com.monitoring.api_monitoring_starter.sbom.service.HashGeneratorService;
 
 @AutoConfiguration
 @AutoConfigureAfter(HibernateJpaAutoConfiguration.class)
@@ -123,14 +120,41 @@ public class MonitoringAutoConfiguration {
 
 
     @Bean
+    public DependencyScannerService dependencyScannerService(
+            LicenseScannerService licenseScannerService,
+            SupplierScannerService supplierScannerService,
+            ExternalReferenceService externalReferenceService
+    ){
 
-    public DependencyScannerService dependencyScannerService(){
+        return new DependencyScannerService(
+                licenseScannerService,
+                supplierScannerService,
+                externalReferenceService
+        );
 
-        return new DependencyScannerService();
+    }
+    @Bean
+    public LicenseScannerService licenseScannerService(){
+
+        return new LicenseScannerService();
 
     }
 
 
+    @Bean
+    public SupplierScannerService supplierScannerService(){
+
+        return new SupplierScannerService();
+
+    }
+
+
+    @Bean
+    public ExternalReferenceService externalReferenceService(){
+
+        return new ExternalReferenceService();
+
+    }
 
     @Bean
     @ConditionalOnProperty(
