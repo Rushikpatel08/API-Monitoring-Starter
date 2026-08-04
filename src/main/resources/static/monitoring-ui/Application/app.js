@@ -188,7 +188,7 @@ function loadLogs() {
     console.log(
         "Connecting to live application logs..."
     );
-    const eventSource = new EventSource("/monitoring/application/logs/stream");
+    const eventSource = new EventSource("/monitoring/applications/logs/stream");
     eventSource.onopen = function() {
         console.log("Live log stream connected");
         setLiveStatus(true);
