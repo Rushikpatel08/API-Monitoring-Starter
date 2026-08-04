@@ -15,7 +15,7 @@
 
 
     <appender name="MEMORY"
-              class="com.example.api_monitoring_starter.Application.Logging.MemoryLogAppender"/>
+              class="com.monitoring.api_monitoring_starter.Application.Logging.MemoryLogAppender"/>
 
 
     <root level="INFO">

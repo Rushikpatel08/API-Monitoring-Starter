@@ -1,1 +1,1 @@
-com.example.api_monitoring_starter.autoconfigure.MonitoringAutoConfiguration
+autoconfigure.com.monitoring.api_monitoring_starter.MonitoringAutoConfiguration

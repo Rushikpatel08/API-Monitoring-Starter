@@ -11,9 +11,9 @@
 		<relativePath/>
 	</parent>
 
-	<groupId>com.example</groupId>
+	<groupId>com.monitoring</groupId>
 	<artifactId>api-monitoring-starter</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 
 	<name>api-monitoring-starter</name>
 	<description>Automatic API Monitoring Starter for Spring Boot Applications</description>
