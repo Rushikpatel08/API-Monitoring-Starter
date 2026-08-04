@@ -15,6 +15,7 @@ import com.monitoring.api_monitoring_starter.controller.ApiExportController;
 import com.monitoring.api_monitoring_starter.controller.MonitoringController;
 import com.monitoring.api_monitoring_starter.controller.MonitoringViewController;
 
+import com.monitoring.api_monitoring_starter.controller.SbomController;
 import com.monitoring.api_monitoring_starter.exporter.BrunoExportService;
 import com.monitoring.api_monitoring_starter.exporter.InsomniaExportService;
 import com.monitoring.api_monitoring_starter.exporter.PostmanExportService;
@@ -23,6 +24,7 @@ import com.monitoring.api_monitoring_starter.scanner.ApiScanner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.monitoring.api_monitoring_starter.security.SbomGeneratorService;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManagerFactory;
 
@@ -36,6 +38,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 
@@ -70,7 +73,29 @@ public class MonitoringAutoConfiguration {
         );
     }
 
+    @Bean
+    public SbomGeneratorService sbomGeneratorService(
+            ObjectMapper objectMapper,
+            ApplicationContext applicationContext,
+            ObjectProvider<BuildProperties> buildProperties
+    ){
 
+        return new SbomGeneratorService(
+                objectMapper,
+                applicationContext,
+                buildProperties.getIfAvailable()
+        );
+
+    }
+
+    @Bean
+    public SbomController sbomController(
+            SbomGeneratorService service
+    ){
+
+        return new SbomController(service);
+
+    }
 
     @Bean
     public MonitoringController monitoringController(
