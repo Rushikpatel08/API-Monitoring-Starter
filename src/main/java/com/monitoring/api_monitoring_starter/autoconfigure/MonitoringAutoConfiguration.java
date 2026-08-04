@@ -4,7 +4,6 @@ import com.monitoring.api_monitoring_starter.Application.Controller.ApplicationM
 import com.monitoring.api_monitoring_starter.Application.Service.ApplicationMonitoringService;
 import com.monitoring.api_monitoring_starter.Database.Controller.DatabaseController;
 import com.monitoring.api_monitoring_starter.Database.Provider.*;
-import com.monitoring.api_monitoring_starter.Database.Provider.*;
 import com.monitoring.api_monitoring_starter.Database.Scanner.EntityScannerService;
 import com.monitoring.api_monitoring_starter.Database.Service.DatabaseMetadataService;
 
@@ -15,16 +14,16 @@ import com.monitoring.api_monitoring_starter.controller.ApiExportController;
 import com.monitoring.api_monitoring_starter.controller.MonitoringController;
 import com.monitoring.api_monitoring_starter.controller.MonitoringViewController;
 
-import com.monitoring.api_monitoring_starter.controller.SbomController;
 import com.monitoring.api_monitoring_starter.exporter.BrunoExportService;
 import com.monitoring.api_monitoring_starter.exporter.InsomniaExportService;
 import com.monitoring.api_monitoring_starter.exporter.PostmanExportService;
 
+import com.monitoring.api_monitoring_starter.sbom.controller.SbomController;
+import com.monitoring.api_monitoring_starter.sbom.service.SbomService;
 import com.monitoring.api_monitoring_starter.scanner.ApiScanner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.monitoring.api_monitoring_starter.security.SbomGeneratorService;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManagerFactory;
 
@@ -43,12 +42,15 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import java.util.List;
+import java.util.Optional;
 
-
+import com.monitoring.api_monitoring_starter.sbom.service.DependencyScannerService;
+import com.monitoring.api_monitoring_starter.sbom.service.HashGeneratorService;
 
 @AutoConfiguration
 @AutoConfigureAfter(HibernateJpaAutoConfiguration.class)
@@ -73,29 +75,9 @@ public class MonitoringAutoConfiguration {
         );
     }
 
-    @Bean
-    public SbomGeneratorService sbomGeneratorService(
-            ObjectMapper objectMapper,
-            ApplicationContext applicationContext,
-            ObjectProvider<BuildProperties> buildProperties
-    ){
 
-        return new SbomGeneratorService(
-                objectMapper,
-                applicationContext,
-                buildProperties.getIfAvailable()
-        );
 
-    }
 
-    @Bean
-    public SbomController sbomController(
-            SbomGeneratorService service
-    ){
-
-        return new SbomController(service);
-
-    }
 
     @Bean
     public MonitoringController monitoringController(
@@ -135,7 +117,69 @@ public class MonitoringAutoConfiguration {
         );
     }
 
+    // =========================================================
+    // SBOM
+    // =========================================================
 
+
+    @Bean
+
+    public DependencyScannerService dependencyScannerService(){
+
+        return new DependencyScannerService();
+
+    }
+
+
+
+    @Bean
+    @ConditionalOnProperty(
+            name="api.monitoring.sbom.enabled",
+            havingValue="true",
+            matchIfMissing=true
+    )
+    public HashGeneratorService hashGeneratorService(){
+
+        return new HashGeneratorService();
+
+    }
+
+
+
+    @Bean
+    @ConditionalOnProperty(
+            name="api.monitoring.sbom.enabled",
+            havingValue="true",
+            matchIfMissing=true
+    )
+    public SbomService sbomService(
+            DependencyScannerService scanner,
+            HashGeneratorService hashGeneratorService,
+            ObjectProvider<BuildProperties> buildProperties,
+            Environment environment
+    ){
+
+        return new SbomService(
+                scanner,
+                hashGeneratorService,
+                buildProperties.getIfAvailable(),
+                environment
+        );
+
+    }
+
+
+
+
+    @Bean
+    @ConditionalOnBean(SbomService.class)
+    public SbomController sbomController(
+            SbomService service
+    ){
+
+        return new SbomController(service);
+
+    }
 
     @Bean
     public BrunoExportService brunoExportService(
